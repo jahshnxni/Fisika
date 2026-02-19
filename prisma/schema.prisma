@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// --- Auth & User ---
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Gamification Profile
+  xp            Int       @default(0)
+  hearts        Int       @default(5)
+  maxHearts     Int       @default(5)
+  streak        Int       @default(0)
+  lastStudyDate DateTime?
+  track         String    @default("BASIC")
+
+  userProgress  UserProgress[]
+  drillAttempts DrillAttempt[]
+  activities    Activity[]
+  notifications Notification[]
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  postViews     PostView[]
+  
+  // Community & Admin
+  role          String    @default("USER") // USER, ADMIN
+  isVerified    Boolean   @default(false)
+  isRestricted  Boolean   @default(false)
+  mutedUntil    DateTime?
+  
+  // Preferences
+  enableNotifications Boolean @default(true)
+  enableSound         Boolean @default(true)
+  
+  // Economy (Edu-Coin)
+  coins         Int      @default(0)
+  inventory     String?  @default("[]") // Stored as JSON string of item IDs
+  equippedTheme String   @default("cosmic")
+  equippedTitle String?
+
+  transactions  Transaction[]
+  
+  // Mega-Project
+  cosmetics     UserCosmetics?
+  gachaHistory  GachaHistory[]
+
+  // AI Tutor
+  chatSessions    ChatSession[]
+  learningProfile LearningProfile?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- Content Curriculum ---
+
+model Unit {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  order       Int
+  slug        String   @unique
+  icon        String   @default("📚")
+  skills      Skill[]
+  questions   Question[]
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  unitId      String
+  title       String
+  slug        String   @unique
+  description String
+  order       Int
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  lessons     Lesson[]
+  questions   Question[]
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  skillId     String
+  title       String
+  slug        String   @unique
+  contentMdx  String
+  order       Int
+  xpReward    Int      @default(10)
+  skill       Skill    @relation(fields: [skillId], references: [id])
+  UserProgress UserProgress[]
+}
+
+model Question {
+  id              String   @id @default(cuid())
+  skillId         String
+  unitId          String
+  questionMd      String
+  options         String
+  correctIndex    Int
+  explanationMd   String
+  difficulty      String   @default("MEDIUM")
+  tags            String
+  category        String   @default("")
+  skill           Skill    @relation(fields: [skillId], references: [id])
+  unit            Unit     @relation(fields: [unitId], references: [id])
+}
+
+// --- Progress ---
+model UserProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String?
+  skillId   String?
+  
+  isCompleted Boolean @default(false)
+  score       Int?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id])
+  
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, lessonId])
+}
+
+// --- Drill ---
+model DrillAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  unitSlug  String
+  score     Int
+  total     Int
+  maxDifficulty String @default("EASY")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+// --- Social & Gamification ---
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "LESSON_COMPLETE", "DRILL_PERFECT", "LEVEL_UP", "BADGE_EARNED"
+  details   String   // e.g. "Fluida Statis", "10 Streak"
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // ACCOMPLISHMENT, SYSTEM, INFO, LEAGUE_UP, LEVEL_UP
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  userId    String
+  content   String
+  imageUrl  String?
+  tags      String?   // Comma separated
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  likes     Like[]
+  views     PostView[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  type        String   // EARN, SPEND
+  category    String   // DAILY_BONUS, QUIZ, SHOP, FOCUS, REFERRAL
+  description String
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- Mega-Project: 3D & Gacha ---
+
+model UserCosmetics {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  currentSkin     String  @default("default_junior")
+  currentPetId    String? // ID of the UserPet
+  
+  unlockedSkins   String  @default("[\"default_junior\"]") // JSON array
+  
+  pityCounter     Int     @default(0)
+  stardust        Int     @default(0)
+  
+  pets            UserPet[]
+}
+
+model UserPet {
+  id              String  @id @default(cuid())
+  userCosmeticsId String
+  petId           String  // "pet_aquabot"
+  name            String? // Custom nickname
+  level           Int     @default(1)
+  xp              Int     @default(0)
+  
+  userCosmetics   UserCosmetics @relation(fields: [userCosmeticsId], references: [id], onDelete: Cascade)
+}
+
+model GachaHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GachaItem {
+  id          String   @id
+  name        String
+  type        String   // SKIN, PET, PROP, CONSUMABLE
+  rarity      String   // S, A, B, C
+  dropRate    Float
+  description String
+}
+
+// --- AI Tutor ---
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  mode      String        @default("QA")   // TUTOR, QA, PRACTICE
+  topic     String?                        // skill slug, e.g. "fluida-statis"
+  title     String        @default("Chat Baru")
+  messages  ChatMessage[]
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  role      String      // "user", "assistant", "system"
+  content   String
+  metadata  String?     // JSON: {intent, hints_given, difficulty, etc.}
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+}
+
+model LearningProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  masteredTopics      String   @default("[]")       // JSON array of topic slugs
+  weakTopics          String   @default("[]")       // JSON array of topic slugs
+  commonMistakes      String   @default("[]")       // JSON: [{type, count, topic}]
+  preferredLevel      String   @default("menengah")  // dasar, menengah, lanjut
+  totalSessions       Int      @default(0)
+  lastSessionSummary  String?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt           DateTime @updatedAt
+}
