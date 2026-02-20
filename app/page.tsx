@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Atom, Zap, Globe, Sparkles, Play } from "lucide-react";
+import { Sparkles, Play, ShoppingBag, Globe } from "lucide-react";
 import StarryBackground from "@/components/ui/StarryBackground";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -9,7 +9,7 @@ import DailyPath from "@/components/dashboard/DailyPath";
 import CommunityFeed from "@/components/dashboard/CommunityFeed";
 import { getDashboardStats, getDailyPath } from "@/lib/dashboard";
 import FocusTimer from "@/components/features/FocusTimer";
-import { ShoppingBag } from "lucide-react";
+import HeroSection from "@/components/landing/HeroSection";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -145,80 +145,5 @@ export default async function Home() {
   }
 
   // === LANDING PAGE (Public) ===
-  return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center text-center px-4 bg-cosmic-950 text-white">
-      <StarryBackground />
-
-      {/* Hero Section */}
-      <div className="relative z-10 max-w-5xl mx-auto space-y-8 animate-in fade-in zoom-in duration-1000">
-
-        {/* Floating Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cosmic-800/50 border border-primary/30 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.3)] animate-float">
-          <Sparkles className="w-4 h-4 text-warning" />
-          <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-            Revolusi Pembelajaran Fisika No. 1
-          </span>
-        </div>
-
-        {/* Main Title */}
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-          Physica <br />
-          <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[200%_auto] bg-clip-text text-transparent animate-aurora">
-            Mastery
-          </span>
-        </h1>
-
-        <p className="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto leading-relaxed text-glow">
-          Jelajahi alam semesta fisika dengan simulasi interaktif "God-Tier", materi mendalam, dan gamifikasi seru.
-        </p>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-12">
-          <Link href="/register">
-            <button className="group relative px-8 py-4 bg-primary rounded-xl font-bold text-lg text-white shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:shadow-[0_0_50px_rgba(139,92,246,0.8)] hover:scale-105 transition-all duration-300 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-              <span className="flex items-center gap-3">
-                Mulai Petualangan <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </button>
-          </Link>
-
-          <Link href="/login">
-            <button className="px-8 py-4 bg-cosmic-800/50 border border-cosmic-700 rounded-xl font-bold text-lg text-slate-300 hover:bg-cosmic-800 hover:text-white transition-all hover:border-primary/50">
-              Masuk Akun
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Feature Grids (Floating) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Top Left */}
-        <div className="absolute top-20 left-10 md:left-20 animate-float" style={{ animationDelay: '0s' }}>
-          <div className="glass-panel p-4 rounded-2xl border border-primary/20 bg-cosmic-900/40 backdrop-blur-sm">
-            <Atom className="w-12 h-12 text-accent animate-spin-slow" />
-          </div>
-        </div>
-
-        {/* Bottom Right */}
-        <div className="absolute bottom-20 right-10 md:right-20 animate-float" style={{ animationDelay: '2s' }}>
-          <div className="glass-panel p-4 rounded-2xl border border-warning/20 bg-cosmic-900/40 backdrop-blur-sm">
-            <Zap className="w-12 h-12 text-warning" />
-          </div>
-        </div>
-
-        {/* Bottom Left (Blurred) */}
-        <div className="absolute bottom-40 left-10 md:left-40 animate-float" style={{ animationDelay: '4s' }}>
-          <div className="glass-panel p-3 rounded-xl border border-success/20 bg-cosmic-900/30 backdrop-blur-[2px] opacity-60">
-            <Globe className="w-8 h-8 text-success" />
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-6 text-slate-500 text-sm font-mono z-10">
-        v0.3.0 • Powered by Next.js 16 & Canvas API
-      </div>
-    </div>
-  );
+  return <HeroSection />;
 }
