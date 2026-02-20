@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, Button } from "@/components/ui/Card";
 import StarryBackground from "@/components/ui/StarryBackground";
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const emailParam = searchParams.get("email") || "";
@@ -229,3 +229,12 @@ export default function VerifyOtpPage() {
         </div>
     );
 }
+
+export default function VerifyOtpPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-cosmic-900 text-white">Memuat halaman...</div>}>
+            <VerifyOtpContent />
+        </Suspense>
+    );
+}
+
