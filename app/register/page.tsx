@@ -25,8 +25,8 @@ export default function RegisterPage() {
             });
 
             if (res.ok) {
-                // Auto login or redirect to login
-                router.push("/login?registered=true");
+                const json = await res.json();
+                router.push(`/verify-otp?email=${encodeURIComponent(json.email || data.email)}`);
             } else {
                 const json = await res.json();
                 setError(json.message || "Registrasi gagal");

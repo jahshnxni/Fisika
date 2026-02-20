@@ -404,7 +404,7 @@ export default function AITutorPage() {
     const currentModeInfo = MODES.find(m => m.key === mode)!;
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] overflow-hidden -mx-4 -my-6 md:-mx-8">
+        <div className="flex h-[calc(100dvh-10rem)] lg:h-[calc(100dvh-6rem)] overflow-hidden -mx-4 -my-4 md:-mx-8">
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
@@ -577,7 +577,7 @@ export default function AITutorPage() {
                             <button
                                 onClick={() => sendMessage()}
                                 disabled={isStreaming || !input.trim()}
-                                className="p-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-600/20"
+                                className="p-3 mb-1 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-600/20"
                             >
                                 {isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                             </button>

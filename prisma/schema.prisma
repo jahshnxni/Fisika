@@ -349,3 +349,21 @@ model LearningProfile {
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   updatedAt           DateTime @updatedAt
 }
+
+// --- Verification & Security ---
+
+model EmailOtp {
+  id            String   @id @default(cuid())
+  email         String
+  otpHash       String
+  purpose       String   @default("VERIFY_EMAIL")
+  expiresAt     DateTime
+  attemptCount  Int      @default(0)
+  maxAttempts   Int      @default(5)
+  resendCount   Int      @default(0)
+  cooldownUntil DateTime
+  usedAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([email])
+}

@@ -35,35 +35,37 @@ export default function HeroSection() {
             )}
 
             {/* Floating Debris / Particles */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                {[...Array(20)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute bg-white/10 rounded-full"
-                        initial={{
-                            x: Math.random() * 1000,
-                            y: Math.random() * 1000,
-                            scale: Math.random() * 0.5 + 0.5,
-                            opacity: Math.random() * 0.5
-                        }}
-                        animate={{
-                            y: [null, Math.random() * -100],
-                            opacity: [null, 0]
-                        }}
-                        transition={{
-                            duration: Math.random() * 10 + 10,
-                            repeat: Infinity,
-                            ease: "linear"
-                        }}
-                        style={{
-                            width: Math.random() * 4 + 1 + "px",
-                            height: Math.random() * 4 + 1 + "px",
-                            left: Math.random() * 100 + "%",
-                            top: Math.random() * 100 + "%",
-                        }}
-                    />
-                ))}
-            </div>
+            {mounted && (
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    {[...Array(20)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute bg-white/10 rounded-full"
+                            initial={{
+                                x: Math.random() * 1000,
+                                y: Math.random() * 1000,
+                                scale: Math.random() * 0.5 + 0.5,
+                                opacity: Math.random() * 0.5
+                            }}
+                            animate={{
+                                y: [null, Math.random() * -100],
+                                opacity: [null, 0]
+                            }}
+                            transition={{
+                                duration: Math.random() * 10 + 10,
+                                repeat: Infinity,
+                                ease: "linear"
+                            }}
+                            style={{
+                                width: Math.random() * 4 + 1 + "px",
+                                height: Math.random() * 4 + 1 + "px",
+                                left: Math.random() * 100 + "%",
+                                top: Math.random() * 100 + "%",
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
 
             <div className="container mx-auto px-4 flex-1 flex items-center justify-center relative z-10 w-full pt-20 lg:pt-0">
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center w-full max-w-7xl">

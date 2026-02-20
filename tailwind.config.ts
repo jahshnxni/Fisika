@@ -38,11 +38,22 @@ const config: Config = {
             animation: {
                 'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 'float': 'float 6s ease-in-out infinite',
+                'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+                'float-up': 'floatUp 1.5s ease-out forwards',
             },
             keyframes: {
                 float: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-20px)' },
+                },
+                shake: {
+                    '0%, 100%': { transform: 'translateX(0)' },
+                    '25%': { transform: 'translateX(-10px)' },
+                    '75%': { transform: 'translateX(10px)' },
+                },
+                floatUp: {
+                    '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+                    '100%': { transform: 'translateY(-100px) scale(1.5)', opacity: '0' },
                 }
             }
         },
