@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
@@ -19,7 +19,7 @@ model User {
   password      String?
   accounts      Account[]
   sessions      Session[]
-  
+
   // Gamification Profile
   xp            Int       @default(0)
   hearts        Int       @default(5)
@@ -36,51 +36,52 @@ model User {
   comments      Comment[]
   likes         Like[]
   postViews     PostView[]
-  
+
   // Community & Admin
-  role          String    @default("USER") // USER, ADMIN
-  isVerified    Boolean   @default(false)
-  isRestricted  Boolean   @default(false)
-  mutedUntil    DateTime?
-  
+  role         String    @default("USER") // USER, ADMIN
+  isVerified   Boolean   @default(false)
+  isRestricted Boolean   @default(false)
+  mutedUntil   DateTime?
+
   // Preferences
   enableNotifications Boolean @default(true)
   enableSound         Boolean @default(true)
-  
+
   // Economy (Edu-Coin)
-  coins         Int      @default(0)
-  inventory     String?  @default("[]") // Stored as JSON string of item IDs
-  equippedTheme String   @default("cosmic")
+  coins         Int           @default(0)
+  inventory     String?       @default("[]") // Stored as JSON string of item IDs
+  equippedTheme String        @default("cosmic")
   equippedTitle String?
+  transactions  Transaction[]
 
   // Mega-Project
-  cosmetics     UserCosmetics?
-  gachaHistory  GachaHistory[]
+  cosmetics    UserCosmetics?
+  gachaHistory GachaHistory[]
 
   // AI Tutor
   chatSessions    ChatSession[]
   learningProfile LearningProfile?
 
   // AI PDF Builder
-  courseSpaces    CourseSpace[]
+  courseSpaces CourseSpace[]
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -98,82 +99,82 @@ model Session {
 // --- Content Curriculum ---
 
 model Unit {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
   description String
   order       Int
-  slug        String   @unique
-  icon        String   @default("📚")
+  slug        String     @unique
+  icon        String     @default("📚")
   skills      Skill[]
   questions   Question[]
 }
 
 model Skill {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   unitId      String
   title       String
-  slug        String   @unique
+  slug        String     @unique
   description String
   order       Int
-  unit        Unit     @relation(fields: [unitId], references: [id])
+  unit        Unit       @relation(fields: [unitId], references: [id])
   lessons     Lesson[]
   questions   Question[]
 }
 
 model Lesson {
-  id          String   @id @default(cuid())
-  skillId     String
-  title       String
-  slug        String   @unique
-  contentMdx  String
-  order       Int
-  xpReward    Int      @default(10)
-  skill       Skill    @relation(fields: [skillId], references: [id])
+  id           String         @id @default(cuid())
+  skillId      String
+  title        String
+  slug         String         @unique
+  contentMdx   String
+  order        Int
+  xpReward     Int            @default(10)
+  skill        Skill          @relation(fields: [skillId], references: [id])
   UserProgress UserProgress[]
 }
 
 model Question {
-  id              String   @id @default(cuid())
-  skillId         String
-  unitId          String
-  questionMd      String
-  options         String
-  correctIndex    Int
-  explanationMd   String
-  difficulty      String   @default("MEDIUM")
-  tags            String
-  category        String   @default("")
-  skill           Skill    @relation(fields: [skillId], references: [id])
-  unit            Unit     @relation(fields: [unitId], references: [id])
+  id            String @id @default(cuid())
+  skillId       String
+  unitId        String
+  questionMd    String
+  options       String
+  correctIndex  Int
+  explanationMd String
+  difficulty    String @default("MEDIUM")
+  tags          String
+  category      String @default("")
+  skill         Skill  @relation(fields: [skillId], references: [id])
+  unit          Unit   @relation(fields: [unitId], references: [id])
 }
 
 // --- Progress ---
 model UserProgress {
-  id        String   @id @default(cuid())
-  userId    String
-  lessonId  String?
-  skillId   String?
-  
+  id       String  @id @default(cuid())
+  userId   String
+  lessonId String?
+  skillId  String?
+
   isCompleted Boolean @default(false)
   score       Int?
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson    Lesson?  @relation(fields: [lessonId], references: [id])
-  
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id])
+
   updatedAt DateTime @updatedAt
-  
+
   @@unique([userId, lessonId])
 }
 
 // --- Drill ---
 model DrillAttempt {
-  id        String   @id @default(cuid())
-  userId    String
-  unitSlug  String
-  score     Int
-  total     Int
+  id            String @id @default(cuid())
+  userId        String
+  unitSlug      String
+  score         Int
+  total         Int
   maxDifficulty String @default("EASY")
-  
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
@@ -183,11 +184,11 @@ model DrillAttempt {
 model Activity {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "LESSON_COMPLETE", "DRILL_PERFECT", "LEVEL_UP", "BADGE_EARNED"
-  details   String   // e.g. "Fluida Statis", "10 Streak"
+  type      String // "LESSON_COMPLETE", "DRILL_PERFECT", "LEVEL_UP", "BADGE_EARNED"
+  details   String // e.g. "Fluida Statis", "10 Streak"
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -195,28 +196,28 @@ model Notification {
   userId    String
   title     String
   message   String
-  type      String   // ACCOMPLISHMENT, SYSTEM, INFO, LEAGUE_UP, LEVEL_UP
+  type      String // ACCOMPLISHMENT, SYSTEM, INFO, LEAGUE_UP, LEVEL_UP
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Post {
-  id        String    @id @default(cuid())
-  userId    String
-  content   String
-  imageUrl  String?
-  tags      String?   // Comma separated
-  
+  id       String  @id @default(cuid())
+  userId   String
+  content  String
+  imageUrl String?
+  tags     String? // Comma separated
+
   // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments  Comment[]
-  likes     Like[]
-  views     PostView[]
-  
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    Like[]
+  views    PostView[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Comment {
@@ -225,10 +226,10 @@ model Comment {
   userId    String
   content   String
   createdAt DateTime @default(now())
-  
+
   // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Like {
@@ -237,8 +238,8 @@ model Like {
   userId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
 }
@@ -249,8 +250,8 @@ model PostView {
   userId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
 }
@@ -259,41 +260,41 @@ model Transaction {
   id          String   @id @default(cuid())
   userId      String
   amount      Int
-  type        String   // EARN, SPEND
-  category    String   // DAILY_BONUS, QUIZ, SHOP, FOCUS, REFERRAL
+  type        String // EARN, SPEND
+  category    String // DAILY_BONUS, QUIZ, SHOP, FOCUS, REFERRAL
   description String
   createdAt   DateTime @default(now())
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // --- Mega-Project: 3D & Gacha ---
 
 model UserCosmetics {
-  id              String  @id @default(cuid())
-  userId          String  @unique
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  currentSkin     String  @default("default_junior")
-  currentPetId    String? // ID of the UserPet
-  
-  unlockedSkins   String  @default("[\"default_junior\"]") // JSON array
-  
-  pityCounter     Int     @default(0)
-  stardust        Int     @default(0)
-  
-  pets            UserPet[]
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentSkin  String  @default("default_junior")
+  currentPetId String? // ID of the UserPet
+
+  unlockedSkins String @default("[\"default_junior\"]") // JSON array
+
+  pityCounter Int @default(0)
+  stardust    Int @default(0)
+
+  pets UserPet[]
 }
 
 model UserPet {
   id              String  @id @default(cuid())
   userCosmeticsId String
-  petId           String  // "pet_aquabot"
+  petId           String // "pet_aquabot"
   name            String? // Custom nickname
   level           Int     @default(1)
   xp              Int     @default(0)
-  
-  userCosmetics   UserCosmetics @relation(fields: [userCosmeticsId], references: [id], onDelete: Cascade)
+
+  userCosmetics UserCosmetics @relation(fields: [userCosmeticsId], references: [id], onDelete: Cascade)
 }
 
 model GachaHistory {
@@ -301,15 +302,15 @@ model GachaHistory {
   userId    String
   itemId    String
   createdAt DateTime @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GachaItem {
-  id          String   @id
+  id          String @id
   name        String
-  type        String   // SKIN, PET, PROP, CONSUMABLE
-  rarity      String   // S, A, B, C
+  type        String // SKIN, PET, PROP, CONSUMABLE
+  rarity      String // S, A, B, C
   dropRate    Float
   description String
 }
@@ -319,8 +320,8 @@ model GachaItem {
 model ChatSession {
   id        String        @id @default(cuid())
   userId    String
-  mode      String        @default("QA")   // TUTOR, QA, PRACTICE
-  topic     String?                        // skill slug, e.g. "fluida-statis"
+  mode      String        @default("QA") // TUTOR, QA, PRACTICE
+  topic     String? // skill slug, e.g. "fluida-statis"
   title     String        @default("Chat Baru")
   messages  ChatMessage[]
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -331,86 +332,86 @@ model ChatSession {
 model ChatMessage {
   id        String      @id @default(cuid())
   sessionId String
-  role      String      // "user", "assistant", "system"
+  role      String // "user", "assistant", "system"
   content   String
-  metadata  String?     // JSON: {intent, hints_given, difficulty, etc.}
+  metadata  String? // JSON: {intent, hints_given, difficulty, etc.}
   session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   createdAt DateTime    @default(now())
 }
 
 model LearningProfile {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  masteredTopics      String   @default("[]")       // JSON array of topic slugs
-  weakTopics          String   @default("[]")       // JSON array of topic slugs
-  commonMistakes      String   @default("[]")       // JSON: [{type, count, topic}]
-  preferredLevel      String   @default("menengah")  // dasar, menengah, lanjut
-  totalSessions       Int      @default(0)
-  lastSessionSummary  String?
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  masteredTopics     String   @default("[]") // JSON array of topic slugs
+  weakTopics         String   @default("[]") // JSON array of topic slugs
+  commonMistakes     String   @default("[]") // JSON: [{type, count, topic}]
+  preferredLevel     String   @default("menengah") // dasar, menengah, lanjut
+  totalSessions      Int      @default(0)
+  lastSessionSummary String?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt          DateTime @updatedAt
 }
 
 // --- AI PDF Course Builder ---
 
 model CourseSpace {
-  id              String   @id @default(cuid())
-  userId          String
-  title           String
-  sourcePdfName   String?
-  pdfText         String   @default("")       // Store raw extracted text to prevent timeout losing context
-  theme           String   @default("modern") // e.g. "modern", "notebook", "science", "cosmic"
-  conceptGraph    String   @default("{}")     // JSON: { nodes, edges, topics }
-  uiConfig        String   @default("{}")     // JSON: layout settings, menu colors
-  isGenerated     Boolean  @default(false)    // True when all Engine 2 tasks are done
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  sourcePdfName String?
+  pdfText       String   @default("") // Store raw extracted text to prevent timeout losing context
+  theme         String   @default("modern") // e.g. "modern", "notebook", "science", "cosmic"
+  conceptGraph  String   @default("{}") // JSON: { nodes, edges, topics }
+  uiConfig      String   @default("{}") // JSON: layout settings, menu colors
+  isGenerated   Boolean  @default(false) // True when all Engine 2 tasks are done
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessons         GeneratedLesson[]
-  quizzes         GeneratedQuiz[]
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons GeneratedLesson[]
+  quizzes GeneratedQuiz[]
 }
 
 model GeneratedLesson {
-  id              String   @id @default(cuid())
-  courseId        String
-  title           String
-  slug            String   @unique
-  order           Int
-  contentMdx      String   @default("")       // Basic concepts, formulas
-  scaffoldedMdx   String   @default("[]")     // JSON Array: [{level: "EASY", question: "", answer: ""}, ...]
-  pdfWalkthrough  String   @default("")       // The specific PDF problem discussed step by step
-  
-  course          CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id             String @id @default(cuid())
+  courseId       String
+  title          String
+  slug           String @unique
+  order          Int
+  contentMdx     String @default("") // Basic concepts, formulas
+  scaffoldedMdx  String @default("[]") // JSON Array: [{level: "EASY", question: "", answer: ""}, ...]
+  pdfWalkthrough String @default("") // The specific PDF problem discussed step by step
+
+  course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 model GeneratedQuiz {
-  id              String   @id @default(cuid())
-  courseId        String
-  lessonId        String?  // Optional, if tied to a specific lesson/sub-bab
-  questionMd      String
-  options         String   // JSON array
-  correctIndex    Int
-  explanationMd   String
-  difficulty      String   @default("MEDIUM")
-  
-  course          CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id            String  @id @default(cuid())
+  courseId      String
+  lessonId      String? // Optional, if tied to a specific lesson/sub-bab
+  questionMd    String
+  options       String // JSON array
+  correctIndex  Int
+  explanationMd String
+  difficulty    String  @default("MEDIUM")
+
+  course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 // --- Verification & Security ---
 
 model EmailOtp {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   email         String
   otpHash       String
-  purpose       String   @default("VERIFY_EMAIL")
+  purpose       String    @default("VERIFY_EMAIL")
   expiresAt     DateTime
-  attemptCount  Int      @default(0)
-  maxAttempts   Int      @default(5)
-  resendCount   Int      @default(0)
+  attemptCount  Int       @default(0)
+  maxAttempts   Int       @default(5)
+  resendCount   Int       @default(0)
   cooldownUntil DateTime
   usedAt        DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([email])
 }
