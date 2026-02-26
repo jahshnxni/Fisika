@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import "@/lib/pdf-polyfill";
-// @ts-expect-error - pdf-parse does not export types natively and lacks a default ES module export
-import pdfParse from "pdf-parse";
+
+// POLYFILL FOR PDF-PARSE / PDFJS-DIST BEFORE ANY MODULE LOADING
+if (typeof global !== "undefined") {
+    if (typeof (global as any).DOMMatrix === "undefined") {
+        (global as any).DOMMatrix = class DOMMatrix { };
+    }
+    if (typeof (global as any).Path2D === "undefined") {
+        (global as any).Path2D = class Path2D { };
+    }
+    if (typeof (global as any).ImageData === "undefined") {
+        (global as any).ImageData = class ImageData { };
+    }
+}
+
+// @ts-expect-error - pdf-parse lacks ES module types
+const pdfParse = require("pdf-parse");
 
 export async function POST(req: NextRequest) {
     try {
