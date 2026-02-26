@@ -53,8 +53,6 @@ model User {
   equippedTheme String   @default("cosmic")
   equippedTitle String?
 
-  transactions  Transaction[]
-  
   // Mega-Project
   cosmetics     UserCosmetics?
   gachaHistory  GachaHistory[]
@@ -62,6 +60,9 @@ model User {
   // AI Tutor
   chatSessions    ChatSession[]
   learningProfile LearningProfile?
+
+  // AI PDF Builder
+  courseSpaces    CourseSpace[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -348,6 +349,52 @@ model LearningProfile {
   lastSessionSummary  String?
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   updatedAt           DateTime @updatedAt
+}
+
+// --- AI PDF Course Builder ---
+
+model CourseSpace {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  sourcePdfName   String?
+  pdfText         String   @default("")       // Store raw extracted text to prevent timeout losing context
+  theme           String   @default("modern") // e.g. "modern", "notebook", "science", "cosmic"
+  conceptGraph    String   @default("{}")     // JSON: { nodes, edges, topics }
+  uiConfig        String   @default("{}")     // JSON: layout settings, menu colors
+  isGenerated     Boolean  @default(false)    // True when all Engine 2 tasks are done
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons         GeneratedLesson[]
+  quizzes         GeneratedQuiz[]
+}
+
+model GeneratedLesson {
+  id              String   @id @default(cuid())
+  courseId        String
+  title           String
+  slug            String   @unique
+  order           Int
+  contentMdx      String   @default("")       // Basic concepts, formulas
+  scaffoldedMdx   String   @default("[]")     // JSON Array: [{level: "EASY", question: "", answer: ""}, ...]
+  pdfWalkthrough  String   @default("")       // The specific PDF problem discussed step by step
+  
+  course          CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedQuiz {
+  id              String   @id @default(cuid())
+  courseId        String
+  lessonId        String?  // Optional, if tied to a specific lesson/sub-bab
+  questionMd      String
+  options         String   // JSON array
+  correctIndex    Int
+  explanationMd   String
+  difficulty      String   @default("MEDIUM")
+  
+  course          CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 // --- Verification & Security ---

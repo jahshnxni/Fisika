@@ -107,30 +107,35 @@ Buktikan sendiri! Geser kedalaman dan jenis fluida, lalu lihat bagaimana tekanan
 
 ## 7. Contoh Soal Bertingkat
 
-### 🌱 Level EASY
-**Soal:** Seekor ikan berenang di kedalaman 5 m dalam danau. Jika $\\rho_{air} = 1000 \\text{ kg/m}^3$ dan $g = 10 \\text{ m/s}^2$, hitung tekanan hidrostatis pada ikan!
-
+### 🌱 Level EASY (Literasi Konsep)
+**Soal:** Apabila seorang penyelam turun lebih dalam ke dasar laut, bagian telinganya akan terasa sakit. Berdasarkan konsep tekanan hidrostatis, jelaskan fenomena ini!
 **Penyelesaian:**
-$$P_h = \\rho \\cdot g \\cdot h = 1000 \\times 10 \\times 5 = 50.000 \\text{ Pa} = 50 \\text{ kPa}$$
+Menurut rumus $P_h = \\rho \\cdot g \\cdot h$, tekanan berbanding lurus dengan kedalaman ($h$). Semakin dalam menyelam, semakin banyak kolom air di atas penyelam, sehingga tekanan air yang menekan gendang telinga semakin besar, menyebabkan rasa sakit.
 
 ---
 
-### ⚔️ Level MEDIUM
-**Soal:** Sebuah kapal selam mengalami tekanan hidrostatis sebesar $P_h = 2.000.000 \\text{ Pa}$. Di kedalaman berapa kapal selam tersebut? ($g = 10 \\text{ m/s}^2$, $\\rho_{air laut} = 1025 \\text{ kg/m}^3$)
-
+### ⚔️ Level NORMAL (Numerasi Standar)
+**Soal:** Seekor ikan berenang di kedalaman 15 m. Jika $\\rho_{air} = 1000 \\text{ kg/m}^3$ dan $g = 10 \\text{ m/s}^2$, hitung tekanan hidrostatis pada ikan!
 **Penyelesaian:**
-$$h = \\frac{P_h}{\\rho \\cdot g} = \\frac{2.000.000}{1025 \\times 10} = \\frac{2.000.000}{10.250} \\approx 195,1 \\text{ m}$$
-
-Kapal selam berada di kedalaman **sekitar 195 meter**.
+$$P_h = \\rho \\cdot g \\cdot h = 1000 \\times 10 \\times 15 = 150.000 \\text{ Pa} = 150 \\text{ kPa}$$
 
 ---
 
-### 🔥 Level HOTS
-**Soal:** Wadah A (tabung sempit) dan Wadah B (kolam lebar) diisi air setinggi 2 m. Di mana tekanan di dasar lebih besar?
+### 🔥 Level HARD (Konteks Nyata)
+**Soal:** Sebuah bendungan air tawar ($\\rho = 1000 \\text{ kg/m}^3$) tingginya 50 m. Tentukan tekanan mutlak di dasar bendungan jika tekanan permukaan $P_0 = 101 \\text{ kPa}$!
+**Penyelesaian:**
+$$P_h = 1000 \\times 10 \\times 50 = 500.000 \\text{ Pa} = 500 \\text{ kPa}$$
+$$P_{total} = P_0 + P_h = 101 + 500 = 601 \\text{ kPa}$$
 
-**Jawab:** **SAMA!** Perhatikan rumus $P_h = \\rho g h$. Tidak ada variabel luas ($A$) di dalam rumus! Tekanan hanya bergantung pada kedalaman, bukan volume atau bentuk wadah. Ini disebut **Paradoks Hidrostatis**.
+---
 
-> **Mengapa paradoks?** Karena secara intuitif, kita mengira kolam yang lebih besar pasti punya tekanan lebih besar. Padahal tidak — karena gaya total memang lebih besar di kolam lebar, tetapi luasnya juga lebih besar, sehingga **tekanan** (gaya per luas) tetap sama!
+### 💀 Level EXTREME (UTBK)
+**Soal:** Pipa U diisi air ($\\rho = 1 \\text{ g/cm}^3$) dan minyak ($\\rho = 0,8 \\text{ g/cm}^3$). Jika selisih tinggi permukaan air pada kedua kaki pipa adalah 4 cm, berapa tinggi kolom minyak?
+**Penyelesaian (Keseimbangan Pipa U):**
+$$P_1 = P_2$$
+$$\\rho_{minyak} \\cdot h_{minyak} = \\rho_{air} \\cdot \\Delta h_{air}$$
+$$0,8 \\cdot h_{minyak} = 1 \\cdot 4$$
+$$h_{minyak} = \\frac{4}{0,8} = 5 \\text{ cm}$$
     `
     },
     {
@@ -216,33 +221,41 @@ Coba tekan piston kecil dan lihat bagaimana gaya diteruskan ke piston besar seca
 
 ## 6. Contoh Soal Bertingkat
 
-### 🌱 Level EASY
-**Soal:** Piston kecil memiliki luas $A_1 = 5 \\text{ cm}^2$ dan ditekan dengan gaya $F_1 = 100 \\text{ N}$. Piston besar memiliki luas $A_2 = 50 \\text{ cm}^2$. Berapa gaya yang dihasilkan piston besar?
-
+### 🌱 Level EASY (Literasi & Konsep)
+**Soal:** Mengapa hukum Pascal hanya berlaku secara efektif untuk cairan (seperti oli dan air) dan tidak digunakan dengan udara pada sistem dongkrak hidrolik?
 **Penyelesaian:**
-$$F_2 = F_1 \\times \\frac{A_2}{A_1} = 100 \\times \\frac{50}{5} = 100 \\times 10 = 1000 \\text{ N}$$
+Menurut hukum Pascal, tekanan diteruskan ke segala arah. Namun, cairan bersifat *incompressible* (tidak bisa dimampatkan), sehingga tenaga yang diberikan langsung diteruskan 100%. Udara bersifat kompresibel, sehingga jika ditekan, energi tersebut akan "terserap" untuk memampatkan udara terlebih dahulu, bukan mengangkat beban.
 
 ---
 
-### ⚔️ Level MEDIUM
-**Soal:** Sebuah dongkrak harus mengangkat mobil dengan berat $W = 15.000 \\text{ N}$. Diameter piston besar = 30 cm, diameter piston kecil = 3 cm. Berapa gaya minimum yang harus diberikan?
-
+### ⚔️ Level NORMAL (Numerasi Standar)
+**Soal:** Sebuah dongkrak hidrolik memiliki dua piston. Piston kecil memiliki luas $A_1 = 10 \\text{ cm}^2$ dan diberi gaya $F_1 = 50 \\text{ N}$. Jika luas piston besar adalah $A_2 = 250 \\text{ cm}^2$, berapakah gaya angkat $F_2$?
 **Penyelesaian:**
-$$A_1 = \\pi r_1^2 = \\pi (1,5)^2 = 2,25\\pi \\text{ cm}^2$$
-$$A_2 = \\pi r_2^2 = \\pi (15)^2 = 225\\pi \\text{ cm}^2$$
-$$\\frac{A_2}{A_1} = \\frac{225\\pi}{2,25\\pi} = 100$$
-$$F_1 = \\frac{F_2}{100} = \\frac{15.000}{100} = 150 \\text{ N}$$
+$$\\frac{F_1}{A_1} = \\frac{F_2}{A_2}$$
+$$F_2 = F_1 \\times \\frac{A_2}{A_1} = 50 \\times \\frac{250}{10} = 1250 \\text{ N}$$
 
 ---
 
-### 🔥 Level HOTS
-**Soal:** Pada sebuah rem hidrolik mobil, gaya pada pedal rem = 50 N. Luas piston master silinder = 4 cm² dan luas piston pada tiap kaliper rem = 16 cm². Jika ada 4 kaliper rem (satu per roda), berapa total gaya pengereman?
+### 🔥 Level HARD (Konteks Sehari-hari/Aplikasi)
+**Soal:** Di bengkel cuci mobil, pompa lift hidrolik harus mengangkat mobil seberat $15.000 \\text{ N}$. Piston besar memiliki diameter 40 cm, sedangkan kompresor udara menekan piston kecil berdiameter 4 cm. Tentukan tekanan udara minimum dari kompresor! (Gunakan $\\pi=3,14$)
+**Penyelesaian:**
+Jari-jari $r_2 = 20 \\text{ cm} = 0,2 \\text{ m}$.
+Luas piston besar $A_2 = \\pi (0,2)^2 = 0,04\\pi \\text{ m}^2 \\approx 0,1256 \\text{ m}^2$.
+Tekanan kompresor sama dengan fluida $P_1 = P_2$:
+$$P_2 = \\frac{F_2}{A_2} = \\frac{15.000}{0,1256} \\approx 119.426 \\text{ Pa} \\approx 1,2 \\text{ atm}$$
 
-**Analisis:**
-$$F_{per\\ kaliper} = 50 \\times \\frac{16}{4} = 200 \\text{ N}$$
-$$F_{total} = 4 \\times 200 = 800 \\text{ N}$$
+---
 
-> Catatan: Dalam sistem nyata, ada master silinder ganda yang membagi tekanan ke roda depan dan belakang secara independen — ini adalah fitur keselamatan!
+### 💀 Level EXTREME (UTBK)
+**Soal:** Sebuah sistem rem hidrolik di mana pedal rem memberikan gaya $F$ pada silinder utama perbandingan tuas lengan pedal 1:4. Silinder utama berjari-jari $r$, dan tekanan diteruskan ke 4 roda yang masing-masing memiliki rem cakram dengan silinder yang berjari-jari $2r$. Hitung rasio total gaya jepit pada keempat roda terhadap gaya injak $F$ pedal pengemudi!
+**Penyelesaian:**
+1. Tuas mekanis melipatgandakan gaya: Gaya di silinder utama $F_{in} = 4F$.
+2. Transmisi gaya hidrolik pada 1 roda ($F_{out}$ vs $F_{in}$):
+   $$\\frac{F_{in}}{A_1} = \\frac{F_{out}}{A_2} \\implies F_{out} = F_{in} \\times \\frac{\\pi(2r)^2}{\\pi r^2} = F_{in} \\times 4$$
+3. Karena ada 4 roda, gaya total mobil $F_{total} = 4 \\times F_{out}$.
+   $$F_{out} = 4F \\times 4 = 16F$$
+   $$F_{total} = 4 \\times 16F = 64F$$
+Rasio total adalah 64:1! Kaki manusia dikalikan 64 kali lipat.
     `
     },
     {
@@ -323,41 +336,53 @@ Ini jauh di bawah $\\rho_{air} = 1000 \\text{ kg/m}^3$, sehingga kapal **terapun
 
 ## 6. Contoh Soal Bertingkat
 
-### 🌱 Level EASY
-**Soal:** Sebuah benda bermassa 0,5 kg dicelupkan seluruhnya ke dalam air ($\\rho = 1000 \\text{ kg/m}^3$). Volume benda = $400 \\text{ cm}^3 = 4 \\times 10^{-4} \\text{ m}^3$. Hitung gaya apung!
-
+### 🌱 Level EASY (Literasi & Konsep Dasar)
+**Soal:** Mengapa manusia jauh lebih mudah mengapung saat berenang di Laut Mati dibandingkan di kolam renang air tawar biasa?
 **Penyelesaian:**
-$$F_a = \\rho_f \\cdot g \\cdot V = 1000 \\times 10 \\times 4 \\times 10^{-4} = 4 \\text{ N}$$
-
-Bandingkan dengan berat benda: $W = m \\cdot g = 0,5 \\times 10 = 5 \\text{ N}$
-
-Karena $W > F_a$, benda **tenggelam**.
+Berdasarkan Hukum Archimedes, gaya apung ($F_a$) sebanding langsung dengan massa jenis fluida ($\\rho_f$). Kolam renang air tawar memiliki $\\rho_{air} \\approx 1000 \\text{ kg/m}^3$, sedangkan Laut Mati adalah danau hipersalin (sangat asin) dengan $\\rho_{asin} > 1240 \\text{ kg/m}^3$. Karena massa jenis air di Laut Mati jauh lebih besar, gaya angkat yang bekerja pada benda di dalamnya juga berkali-kali lipat lebih kuat, sehingga manusia seakan "didorong" ke permukaan!
 
 ---
 
-### ⚔️ Level MEDIUM
-**Soal:** Balok kayu ($\\rho = 600 \\text{ kg/m}^3$) dimasukkan ke air ($\\rho = 1000 \\text{ kg/m}^3$). Berapa persen volume yang terendam?
-
+### ⚔️ Level NORMAL (Numerasi Standar)
+**Soal:** Sebuah balok kayu bervolume $0,004 \\text{ m}^3$ dicelupkan ke dalam air ($\\rho = 1000 \\text{ kg/m}^3$). Ternyata 3/4 bagian dari balok tersebut terendam di bawah permukaan air. Berapakah massa balok kayu tersebut? ($g = 10 \\text{ m/s}^2$)
 **Penyelesaian:**
-$$\\frac{V_{terendam}}{V_{total}} = \\frac{\\rho_{benda}}{\\rho_{fluida}} = \\frac{600}{1000} = 0,6 = 60\\%$$
-
-Artinya 60% balok terendam dan 40% muncul di atas permukaan.
+Volume terendam $V_{terendam} = \\frac{3}{4} \\times 0,004 = 0,003 \\text{ m}^3$.
+Syarat benda terapung: Berat balok = Gaya Apung
+$$W = F_a$$
+$$m \\cdot g = \\rho_{air} \\cdot g \\cdot V_{terendam}$$
+$$m = 1000 \\times 0,003 = 3 \\text{ kg}$$
+Massa balok tersebut adalah 3 kg.
 
 ---
 
-### 🔥 Level HOTS
-**Soal:** Es batu terapung di gelas berisi air. Saat es mencair seluruhnya, apakah permukaan air dalam gelas akan naik, turun, atau tetap?
+### 🔥 Level HARD (Konteks Kehidupan Sehari-hari/Aplikasi)
+**Soal:** Di pelabuhan, sebuah kapal tongkang kosong bermassa $150.000 \\text{ kg}$ akan memuat batu bara. Volume maksimum badan kapal yang aman tercelup air tanpa membuat kapal tenggelam adalah $500 \\text{ m}^3$. Jika massa jenis air sungai (tempat pelabuhan) adalah $1000 \\text{ kg/m}^3$, berapa metrik ton berat batu bara maksimal yang boleh diangkut?
+**Penyelesaian:**
+Syarat terapung maksimum: 
+Berat total (Kapal + Beban) = Gaya Apung Maksimal
+$$(m_{kapal} + m_{batubara}) \\cdot g = \\rho_{air} \\cdot g \\cdot V_{tercelup\\_maks}$$
+$$150.000 + m_{batubara} = 1000 \\times 500$$
+$$150.000 + m_{batubara} = 500.000$$
+$$m_{batubara} = 500.000 - 150.000 = 350.000 \\text{ kg}$$
+Dalam metrik ton (1 ton = 1000 kg), batas aman kargo adalah **350 ton batu bara**.
 
-**Jawab:** **TETAP!**
+---
 
-Saat terapung, es memindahkan air seberat dirinya:
-$$m_{es} \\cdot g = \\rho_{air} \\cdot g \\cdot V_{terendam}$$
-$$V_{terendam} = \\frac{m_{es}}{\\rho_{air}}$$
+### 💀 Level EXTREME (Tipe UTBK / Analisis Kompleks)
+**Soal:** Sebongkah es (massa jenis $0,9 \\text{ g/cm}^3$) terapung dalam bejana air (massa jenis $1 \\text{ g/cm}^3$). Di atas bongkahan es tersebut diletakkan sebuah koin logam seberat $W_{koin} = 0,2 \\text{ N}$. Akibatnya, bongkahan es bergerak turun hingga permukaan atas rata dan sejajar dengan permukaan air. Jika kemudian koin diambil perlahan, es akan naik dan muncul sebanyak 20% bagian dari volumenya di atas permukaan air. Berapa cm³ volume total bongkahan es tersebut? ($g=10 \\text{ m/s}^2$)
+**Penyelesaian:**
+**Keadaan 1** (Ada Koin, es tenggelam $100\\%$):
+$$W_{es} + W_{koin} = F_{a(total)}$$
+$$\\rho_{es} \\cdot V_{es} \\cdot g + 0,2 = \\rho_{air} \\cdot V_{es} \\cdot g$$
+Konversi satuan: $1 \\text{ g/cm}^3 = 1000 \\text{ kg/m}^3$ dan $0,9 \\text{ g/cm}^3 = 900 \\text{ kg/m}^3$.
+$$900 \\cdot V_{es} \\cdot 10 + 0,2 = 1000 \\cdot V_{es} \\cdot 10$$
+$$9000 V_{es} + 0,2 = 10000 V_{es}$$
+$$0,2 = 1000 V_{es} \\implies V_{es} = \\frac{0,2}{1000} = 2 \\times 10^{-4} \\text{ m}^3$$
 
-Saat es mencair menjadi air, volumenya:
-$$V_{cair} = \\frac{m_{es}}{\\rho_{air}}$$
+Konversikan kembali dari meter kubik ke sentimeter kubik:
+$$V_{es} = 2 \\times 10^{-4} \\times 10^6 \\text{ cm}^3 = 200 \\text{ cm}^3$$
 
-Keduanya **sama persis**, sehingga level air tetap!
+Volume total bongkahan es tersebut tepat $200 \\text{ cm}^3$.
     `
     },
 ];

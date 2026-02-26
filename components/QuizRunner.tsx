@@ -262,9 +262,25 @@ export default function QuizRunner({ skillId, questions, topic }: { skillId: str
 
             {/* Timer Bar */}
             <div className="mb-6 relative">
-                <div className="flex justify-between text-xs text-slate-400 mb-1 font-mono">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeLeft}s</span>
-                    <span>Soal {current + 1}/{questions.length}</span>
+                <div className="flex justify-between items-end text-xs text-slate-400 mb-2 font-mono">
+                    <div className="flex flex-col gap-2">
+                        <span className="flex items-center gap-1 font-bold"><Clock className="w-3 h-3" /> {timeLeft}s</span>
+                        <div className="flex flex-wrap gap-1 items-center">
+                            <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase border tracking-wider ${question.difficulty === 'EASY' ? 'bg-green-900/30 text-green-400 border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.1)]' :
+                                    question.difficulty === 'NORMAL' ? 'bg-blue-900/30 text-blue-400 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]' :
+                                        question.difficulty === 'HARD' ? 'bg-orange-900/30 text-orange-400 border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.1)]' :
+                                            'bg-red-900/30 text-red-400 border-red-500/30 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                                }`}>
+                                {question.difficulty === 'EASY' ? '🌱 EASY' :
+                                    question.difficulty === 'NORMAL' ? '⚔️ NORMAL' :
+                                        question.difficulty === 'HARD' ? '🔥 HARD' : '💀 EXTREME'}
+                            </span>
+                            {question.tags?.map((tag: string, i: number) => (
+                                <span key={i} className="bg-slate-800 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded text-[10px]">{tag}</span>
+                            ))}
+                        </div>
+                    </div>
+                    <span className="text-sm font-bold text-slate-300 bg-cosmic-800 px-3 py-1 rounded-lg border border-cosmic-700">Soal {current + 1}/{questions.length}</span>
                 </div>
                 <div className="w-full bg-cosmic-900 rounded-full h-3 overflow-hidden border border-cosmic-800">
                     <div

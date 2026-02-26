@@ -10,6 +10,7 @@ export const SKILLS: SkillData[] = [
     { title: "Debit & Kontinuitas", slug: "debit-kontinuitas", description: "Aliran fluida dan hukum kekekalan massa.", order: 1, unitSlug: "fluida-dinamis" },
     { title: "Hukum Bernoulli", slug: "hukum-bernoulli", description: "Rahasia pesawat terbang dan parfum semprot.", order: 2, unitSlug: "fluida-dinamis" },
     { title: "Toricelli & Venturimeter", slug: "toricelli-venturi", description: "Kecepatan air keluar lubang dan pengukur kecepatan aliran.", order: 3, unitSlug: "fluida-dinamis" },
+    { title: "Aerodinamika", slug: "aerodinamika", description: "Prinsip Bernoulli pada sayap pesawat, gaya angkat, dan angin.", order: 4, unitSlug: "fluida-dinamis" },
 
     // --- UNIT 3: GELOMBANG ---
     { title: "Gelombang Mekanik", slug: "gelombang-mekanik", description: "Gelombang transversal dan longitudinal.", order: 1, unitSlug: "gelombang" },

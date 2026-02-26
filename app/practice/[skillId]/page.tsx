@@ -17,16 +17,17 @@ export default async function PracticePage({ params }: PageProps) {
         redirect("/login");
     }
 
-    const skill = await prisma.skill.findUnique({
-        where: { id: skillId },
-        include: {
-            questions: {
-                take: 10,
-            }
-        }
+    // Progressive Drill Query Logic
+    // Fetch all questions for this skill to shuffle
+    const allQuestions = await prisma.question.findMany({
+        where: { skillId: skillId }
     });
 
-    if (!skill || skill.questions.length === 0) {
+    const skill = await prisma.skill.findUnique({
+        where: { id: skillId }
+    });
+
+    if (!skill || allQuestions.length === 0) {
         return (
             <div className="min-h-screen text-white flex flex-col items-center justify-center p-8 text-center">
                 <h1 className="text-2xl font-bold mb-4">Belum ada soal 😅</h1>
@@ -36,8 +37,20 @@ export default async function PracticePage({ params }: PageProps) {
         )
     }
 
-    // SQLite Adaptation: Parse JSON strings back to objects
-    const parsedQuestions = skill.questions.map(q => ({
+    // Shuffle helper function
+    const shuffleArray = <T,>(array: T[]) => array.sort(() => Math.random() - 0.5);
+
+    // Group questions by difficulty
+    const easyQ = shuffleArray(allQuestions.filter(q => q.difficulty === 'EASY')).slice(0, 3);
+    const normalQ = shuffleArray(allQuestions.filter(q => q.difficulty === 'NORMAL')).slice(0, 3);
+    const hardQ = shuffleArray(allQuestions.filter(q => q.difficulty === 'HARD')).slice(0, 2);
+    const extremeQ = shuffleArray(allQuestions.filter(q => q.difficulty === 'EXTREME')).slice(0, 2);
+
+    // Combine them in progressive order: Easy -> Normal -> Hard -> Extreme
+    const progressiveQuestions = [...easyQ, ...normalQ, ...hardQ, ...extremeQ];
+
+    // Adapt to component structure
+    const parsedQuestions = progressiveQuestions.map(q => ({
         ...q,
         options: JSON.parse(q.options),
         tags: JSON.parse(q.tags)
