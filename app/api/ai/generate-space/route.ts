@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { COURSE_BUILDER_PROMPT } from "@/lib/ai/master-prompt";
 
 export async function POST(req: NextRequest) {
     try {
@@ -32,27 +33,6 @@ export async function POST(req: NextRequest) {
         const textToAnalyze = space.pdfText ? space.pdfText.substring(0, 15000) : "Teks kosong.";
 
         // 2. Call AI (Gemini Flash Lite or Groq)
-        // Prompt Engineering to force structured JSON output mapping the Curriculum
-        const systemPrompt = `Kamu adalah AI Physics Course Builder.
-Tugasmu adalah menganalisis teks materi mentah berikut (mungkin copas dari PDF berantakan), dan mengubahnya menjadi struktur silabus kursus JSON.
-
-Format JSON wajib seperti ini (TANPA MARKDOWN BACKTICKS, murni JSON):
-{
-  "topics": ["Nama Bab Utama 1", "Nama Bab Utama 2"],
-  "lessons": [
-    {
-      "title": "Sub Bab 1",
-      "contentMdx": "Penjelasan singkat menggunakan rumus LaTeX $E=mc^2$."
-    }
-  ]
-}
-
-PENTING:
-- Ambil inti sari materi dari PDF Text di bawah.
-- Buat maksimal 3 lessons agar tidak terlalu panjang.
-- Jangan gunakan formatting markdown di awal dan akhir JSON.
-`;
-
         const geminiKey = process.env.GEMINI_API_KEY;
         let aiResult = "";
 
@@ -66,7 +46,7 @@ PENTING:
                         { role: "user" as const, parts: [{ text: textToAnalyze }] },
                     ],
                     config: {
-                        systemInstruction: systemPrompt,
+                        systemInstruction: COURSE_BUILDER_PROMPT,
                         temperature: 0.3,
                     },
                 });
@@ -80,22 +60,30 @@ PENTING:
         aiResult = aiResult.replace(/```json/g, "").replace(/```/g, "").trim();
 
         // Use Mock data if AI fails parsing JSON
-        let parsedPayload = { topics: ["Pendahuluan"], lessons: [{ title: "Teori Dasar", contentMdx: "AI gagal mengekstrak, ini adalah teks bawaan." }] };
+        let parsedPayload: any = {
+            main_topic: "Pendahuluan",
+            concept_graph: { subtopics: [] },
+            ui_config: { theme: "cosmic" },
+            lessons: [{ title: "Teori Dasar", contentMdx: "AI gagal mengekstrak, ini teks bawaan." }]
+        };
+
         try {
             parsedPayload = JSON.parse(aiResult);
         } catch {
             console.warn("Using Mock fallback");
         }
 
-        // 3. Save into Database (Engine 2: Database Construction)
-        // Note: Using a transaction to ensure integrity
+        // 3. Save into Database (Engine 2 & 8: Database & UI Construction)
         await prisma.$transaction(async (tx) => {
             // Update Space
             await tx.courseSpace.update({
                 where: { id: spaceId },
                 data: {
+                    title: parsedPayload.main_topic || space.title,
                     isGenerated: true,
-                    conceptGraph: JSON.stringify({ topics: parsedPayload.topics })
+                    theme: parsedPayload.ui_config?.theme || "cosmic",
+                    uiConfig: JSON.stringify(parsedPayload.ui_config || {}),
+                    conceptGraph: JSON.stringify(parsedPayload.concept_graph || {})
                 }
             });
 
