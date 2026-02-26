@@ -37,19 +37,13 @@ export default async function SpaceLayout({
 
     // Engine 3: UI Builder theme application
     const themeStyles: Record<string, string> = {
-        "blue-fluid": "bg-blue-950",
-        "purple-wave": "bg-fuchsia-950 text-fuchsia-50",
-        "red-thermo": "bg-rose-950",
         cosmic: "bg-cosmic-950",
         notebook: "bg-amber-50/10 text-slate-800",
         modern: "bg-slate-900",
-        science: "bg-teal-950", // fallbacks
+        science: "bg-teal-950",
     };
 
     const accentStyles: Record<string, string> = {
-        "blue-fluid": "text-blue-400 bg-blue-500/10 border-blue-500/20",
-        "purple-wave": "text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20",
-        "red-thermo": "text-rose-400 bg-rose-500/10 border-rose-500/20",
         cosmic: "text-purple-400 bg-purple-500/10 border-purple-500/20",
         notebook: "text-amber-500 bg-amber-500/10 border-amber-500/20",
         modern: "text-blue-400 bg-blue-500/10 border-blue-500/20",
