@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-const pdfParse = require("pdf-parse");
+// @ts-expect-error - pdf-parse does not export types natively and lacks a default ES module export
+import pdfParse from "pdf-parse";
 
 export async function POST(req: NextRequest) {
     try {
