@@ -16,7 +16,6 @@ if (typeof global !== "undefined") {
     }
 }
 
-// @ts-expect-error - pdf-parse lacks ES module types
 const pdfParse = require("pdf-parse");
 
 export async function POST(req: NextRequest) {
