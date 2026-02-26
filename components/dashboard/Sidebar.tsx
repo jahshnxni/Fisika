@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, Target, Users, ShoppingBag, Award, Settings, LogOut, User, Bot } from "lucide-react";
+import { LayoutDashboard, BookOpen, Target, Users, ShoppingBag, Award, Settings, LogOut, User, Bot, Sparkles } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const Sidebar = React.memo(() => {
 
     const navItems = [
         { icon: LayoutDashboard, label: "Kelas Saya", href: "/" },
+        { icon: Sparkles, label: "Buat Course AI", href: "/spaces" },
         { icon: BookOpen, label: "Materi", href: "/learn" },
         { icon: Target, label: "Latihan", href: "/drill" },
         { icon: Bot, label: "AI Tutor", href: "/ai" },
