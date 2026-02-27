@@ -2,21 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-
-// POLYFILL FOR PDF-PARSE / PDFJS-DIST BEFORE ANY MODULE LOADING
-if (typeof global !== "undefined") {
-    if (typeof (global as any).DOMMatrix === "undefined") {
-        (global as any).DOMMatrix = class DOMMatrix { };
-    }
-    if (typeof (global as any).Path2D === "undefined") {
-        (global as any).Path2D = class Path2D { };
-    }
-    if (typeof (global as any).ImageData === "undefined") {
-        (global as any).ImageData = class ImageData { };
-    }
-}
-
-const { PDFParse } = require("pdf-parse");
+import pdfParse from "pdf-parse";
 
 export async function POST(req: NextRequest) {
     try {
@@ -36,9 +22,8 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Parse PDF text using pdf-parse v2 API
-        const parser = new PDFParse({ data: buffer });
-        const pdfData = await parser.getText();
+        // Parse PDF text securely with legacy stable PDF.js engine
+        const pdfData = await pdfParse(buffer);
         const text = pdfData.text;
 
         if (!text || text.trim().length === 0) {
