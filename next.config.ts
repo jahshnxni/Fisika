@@ -7,7 +7,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Fix for native binary canvas packages crashing Vercel Serverless deployment
-  serverExternalPackages: ['canvas', '@napi-rs/canvas'],
+  serverExternalPackages: ['canvas', '@napi-rs/canvas', 'pdf-parse'],
   // Fix for Next.js 16 Turbopack conflict with next-pwa
   // Removed explicit turbopack config to prevent panic
 
