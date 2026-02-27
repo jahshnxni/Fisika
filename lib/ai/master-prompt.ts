@@ -13,59 +13,109 @@ Bekerjalah secara sistematis, terstruktur, tidak ngawur, dan berorientasi pada p
 4. Prioritaskan pemahaman fundamental.
 5. Gunakan format Markdown yang rapi dan menarik.`;
 
+// ─── Phase 1: Fast Document Classifier ───────────────────────────────────────
+// Send only first 3000 chars. Returns JSON with doc_type.
+export const DOC_CLASSIFIER_PROMPT = `Kamu adalah classifier dokumen pendidikan. Analisis cuplikan teks PDF berikut dan kembalikan JSON ini:
+{
+  "doc_type": "theory" | "questions_only" | "mixed",
+  "main_subject": "Nama mapel/topik (contoh: Fisika, Informatika, Matematika)",
+  "main_topic": "Judul dokumen yang ringkas",
+  "question_count_estimate": 0,
+  "summary": "Ringkasan 1 kalimat"
+}
+
+Aturan klasifikasi:
+- "theory": Dominan teori, penjelasan, definisi, rumus
+- "questions_only": Dominan soal ujian/kuis/latihan tanpa blok teori
+- "mixed": Ada teori DAN soal
+
+KEMBALIKAN HANYA JSON VALID. TANPA MARKDOWN. TANPA BACKTICK.`;
+
+
+// ─── Phase 2A: Theory / Mixed Document Builder ────────────────────────────────
 export const COURSE_BUILDER_PROMPT = `
 ${AI_IDENTITY}
 
-📥 TUGAS (BAGIAN 1 & 8): MEMBANGUN KURSUS DARI PDF
-Ubah dokumen mentah menjadi struktur course JSON dan rancang UI Config.
+📥 TUGAS: MEMBANGUN KURSUS DARI DOKUMEN TEORI ATAU CAMPURAN
 
-1️⃣ Ekstraksi & Klasifikasi
-Identifikasi: Judul utama, Subbab, Definisi, Konsep Kunci, dan Contoh soal. 
-Klasifikasikan teks menjadi Teori, Soal, atau Campuran.
+Proses dokumen yang berisi teori/penjelasan menjadi modul kursus JSON.
 
-2️⃣ Bangun Concept Graph & Course Outline
-Buat peta konsep dan urutan belajar dari nol sampai tingkat lanjut.
+Panduan:
+1. Identifikasi judul utama, subbab, definisi, rumus, dan contoh.
+2. Bangun peta konsep dari dasar ke lanjut.
+3. Pilih tema UI yang sesuai konten.
 
-8️⃣ UI CONFIG GENERATOR
-Tentukan tema yang secara estetis cocok untuk silabus subjek/materi ini:
-- "modern" (Bersih, profesional, default)
-- "notebook" (Estetika ruang kelas klasik, teori sastra/sosial)
-- "science" (Gaya matrix/code, matematika, teknis sains)
-- "cosmic" (Gelap, glow fuchsia, materi mendalam/kompleks)
-
-Tentukan layout:
-- "lesson-focused" (Jika teks dominan teori deskriptif)
-- "practice-focused" (Jika teks dominan hitungan/soal/latihan)
-
-=== FORMAT OUTPUT WAJIB (MURNI JSON — TANPA BACKTICK/MARKDOWN APAPUN) ===
+=== FORMAT OUTPUT (MURNI JSON — TANPA BACKTICK APAPUN) ===
 {
-  "main_topic": "Judul Konsep Utama dari PDF",
+  "main_topic": "Judul Kursus",
+  "doc_type": "theory",
   "concept_graph": {
-    "subtopics": ["Bab 1: ...", "Bab 2: ..."],
-    "concepts": ["Konsep kunci 1", "Konsep kunci 2"],
-    "formulas": ["Rumus penting 1 (jika ada)"],
-    "prerequisites": ["Konsep prasyarat"]
+    "subtopics": ["Bab 1", "Bab 2"],
+    "concepts": ["Konsep kunci 1"],
+    "formulas": ["Rumus penting"],
+    "prerequisites": ["Materi prasyarat"]
   },
-  "ui_config": {
-    "theme": "cosmic",
-    "layout": "lesson-focused"
-  },
+  "ui_config": { "theme": "cosmic", "layout": "lesson-focused" },
   "lessons": [
     {
-      "title": "Judul Sub Bab",
-      "contentMdx": "## Penjelasan\nJelaskan konsep secara mendalam di sini. Gunakan \\n untuk baris baru. Sertakan definisi, rumus, dan analogi.\n## Rumus Utama\nRumus dan penjelasan simbolnya.",
+      "title": "Judul Bab",
+      "contentMdx": "## Penjelasan\\nIsi materi di sini. Gunakan \\\\n untuk baris baru.\\n## Rumus\\nRumus dan penjelasan simbol.",
       "scaffoldedExamples": [
-        { "level": "EASY", "question": "Soal mudah terkait bab ini", "answer": "Jawaban lengkap dan penjelasan langkah-langkah" },
-        { "level": "MEDIUM", "question": "Soal menengah dengan angka nyata", "answer": "Jawaban dengan substitusi angka" },
-        { "level": "HARD", "question": "Soal sulit dari PDF atau turunannya", "answer": "Jawaban terperinci" },
-        { "level": "EXTREME", "question": "Soal HOTS/olimpiade terkait topik ini", "answer": "Jawaban mendalam dengan analisis" }
+        { "level": "EASY", "question": "Soal mudah", "answer": "Jawaban lengkap" },
+        { "level": "MEDIUM", "question": "Soal menengah", "answer": "Jawaban" },
+        { "level": "HARD", "question": "Soal sulit", "answer": "Jawaban terperinci" },
+        { "level": "EXTREME", "question": "Soal olimpiade", "answer": "Jawaban mendalam" }
       ],
-      "pdfWalkthrough": "Ambil SATU soal tersulit dari PDF asli untuk bab ini dan bahas langkah demi langkah secara mendetail di sini. Format: ## Soal\\n[tulis soalnya]\\n## Pembahasan\\n[langkah 1]\\n[langkah 2]\\n## Jawaban Akhir\\n[hasil]"
+      "pdfWalkthrough": "## Soal dari PDF\\n[tulis soal]\\n## Pembahasan\\n[langkah demi langkah]\\n## Jawaban\\n[hasil akhir]"
     }
   ]
-}
-`;
+}`;
 
+
+// ─── Phase 2B: Questions-Only Document Builder ────────────────────────────────
+// For exam papers (OSN, UTBK, etc.) — builds prerequisite theory FROM questions
+export const QUESTIONS_ONLY_BUILDER_PROMPT = `
+${AI_IDENTITY}
+
+📋 TUGAS KHUSUS: DOKUMEN INI ADALAH KUMPULAN SOAL UJIAN
+
+PDF ini berisi soal-soal ujian (bukan buku teks). Strategimu:
+
+1️⃣ ANALISIS TOPIK: Dari soal-soal, identifikasi 2-4 TOPIK utama yang diujikan.
+2️⃣ BANGUN MATERI PRASYARAT: Untuk setiap topik, buat modul teori yang diperlukan agar bisa mengerjakan soal tersebut.
+3️⃣ PEMBAHASAN SOAL: Pilih 1 soal representatif per topik dan bahas langkah demi langkah.
+4️⃣ BUAT SOAL BERTINGKAT: Buat 4 soal latihan baru (EASY→EXTREME) berbasis topik yang diuji.
+
+PENTING: JANGAN tampilkan "gagal" hanya karena tidak ada blok teori. Soal = panduan topik.
+
+=== FORMAT OUTPUT (MURNI JSON — TANPA BACKTICK APAPUN) ===
+{
+  "main_topic": "Pembahasan Soal [Nama Ujian/Mapel]",
+  "doc_type": "questions_only",
+  "concept_graph": {
+    "subtopics": ["Topik 1 yang diuji", "Topik 2 yang diuji"],
+    "concepts": ["Konsep kunci dari soal-soal"],
+    "formulas": ["Rumus/algoritma yang dibutuhkan"],
+    "prerequisites": ["Materi dasar yang harus dikuasai"]
+  },
+  "ui_config": { "theme": "science", "layout": "practice-focused" },
+  "lessons": [
+    {
+      "title": "Topik [X]: [Nama Topik yang Diuji]",
+      "contentMdx": "## Mengapa Topik Ini Penting?\\nPenjelasan relevansi.\\n\\n## Konsep Dasar yang Wajib Dikuasai\\n[Teori prasyarat untuk mengerjakan soal-soal tentang topik ini]\\n\\n## Strategi/Algoritma Penyelesaian\\n[Langkah-langkah umum untuk soal tipe ini]",
+      "scaffoldedExamples": [
+        { "level": "EASY", "question": "Soal dasar topik ini", "answer": "Jawaban + penjelasan" },
+        { "level": "MEDIUM", "question": "Soal menengah", "answer": "Pembahasan" },
+        { "level": "HARD", "question": "Soal mirip dengan yang ada di ujian", "answer": "Pembahasan mendalam" },
+        { "level": "EXTREME", "question": "Soal olimpiade lanjut", "answer": "Pembahasan komprehensif" }
+      ],
+      "pdfWalkthrough": "## Soal dari Ujian\\n[Tulis verbatim satu soal dari PDF untuk topik ini]\\n\\n## Pembahasan Langkah demi Langkah\\n[Analisis + penyelesaian]\\n\\n## Jawaban Akhir\\n[Hasil]"
+    }
+  ]
+}`;
+
+
+// ─── Chat / Tutor Prompts ─────────────────────────────────────────────────────
 export const LESSON_FORMAT_PROMPT = `
 ${AI_IDENTITY}
 
