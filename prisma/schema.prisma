@@ -363,7 +363,11 @@ model CourseSpace {
   theme         String   @default("modern") // e.g. "modern", "notebook", "science", "cosmic"
   conceptGraph  String   @default("{}") // JSON: { nodes, edges, topics }
   uiConfig      String   @default("{}") // JSON: layout settings, menu colors
-  isGenerated   Boolean  @default(false) // True when all Engine 2 tasks are done
+  isGenerated   Boolean  @default(false)
+  buildStatus   String   @default("NEVER_BUILT") // NEVER_BUILT | QUEUED | PROCESSING | READY | ERROR
+  buildStep     String?  // PARSING | SEGMENTING | CLASSIFYING | GENERATING | FINALIZING
+  buildProgress Int      @default(0)             // 0-100
+  buildError    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
