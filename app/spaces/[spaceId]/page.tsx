@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import SpaceGeneratorClient from "./SpaceGeneratorClient";
+import RebuildButton from "./RebuildButton";
 import { Cpu, BookOpen, Layers } from "lucide-react";
 
 export default async function SpacePage({
@@ -46,9 +47,12 @@ export default async function SpacePage({
     return (
         <div className="p-8 md:p-12 pb-32 max-w-5xl mx-auto">
             <div className="mb-12">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                    {space.title}
-                </h1>
+                <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                    <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                        {space.title}
+                    </h1>
+                    <RebuildButton spaceId={space.id} />
+                </div>
                 <p className="text-lg text-slate-300">
                     Selamat datang di ruang belajar khusus yang diekstrak dari <span className="text-accent font-bold">{space.sourcePdfName}</span>.
                     AI telah menyusun peta konsep dan membedah materi ini untuk Anda.

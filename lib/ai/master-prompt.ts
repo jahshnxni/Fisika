@@ -37,24 +37,30 @@ Tentukan layout:
 - "lesson-focused" (Jika teks dominan teori deskriptif)
 - "practice-focused" (Jika teks dominan hitungan/soal/latihan)
 
-=== FORMAT OUTPUT WAJIB (MURNI JSON TANPA BACKTICKS/MARKDOWN FORMATTING) ===
+=== FORMAT OUTPUT WAJIB (MURNI JSON — TANPA BACKTICK/MARKDOWN APAPUN) ===
 {
-  "main_topic": "Judul Konsep Utama",
+  "main_topic": "Judul Konsep Utama dari PDF",
   "concept_graph": {
-    "subtopics": ["Bab 1", "Bab 2"],
-    "concepts": ["Keyword 1", "Keyword 2"],
+    "subtopics": ["Bab 1: ...", "Bab 2: ..."],
+    "concepts": ["Konsep kunci 1", "Konsep kunci 2"],
     "formulas": ["Rumus penting 1 (jika ada)"],
     "prerequisites": ["Konsep prasyarat"]
   },
   "ui_config": {
-    "theme": "modern",
-    "layout": "lesson-focused",
-    "sidebar": ["Overview", "Concept Map", "Lesson 1", "Practice"]
+    "theme": "cosmic",
+    "layout": "lesson-focused"
   },
   "lessons": [
     {
-      "title": "Sub Bab Dasar",
-      "contentMdx": "Teks Penjelasan..."
+      "title": "Judul Sub Bab",
+      "contentMdx": "## Penjelasan\nJelaskan konsep secara mendalam di sini. Gunakan \\n untuk baris baru. Sertakan definisi, rumus, dan analogi.\n## Rumus Utama\nRumus dan penjelasan simbolnya.",
+      "scaffoldedExamples": [
+        { "level": "EASY", "question": "Soal mudah terkait bab ini", "answer": "Jawaban lengkap dan penjelasan langkah-langkah" },
+        { "level": "MEDIUM", "question": "Soal menengah dengan angka nyata", "answer": "Jawaban dengan substitusi angka" },
+        { "level": "HARD", "question": "Soal sulit dari PDF atau turunannya", "answer": "Jawaban terperinci" },
+        { "level": "EXTREME", "question": "Soal HOTS/olimpiade terkait topik ini", "answer": "Jawaban mendalam dengan analisis" }
+      ],
+      "pdfWalkthrough": "Ambil SATU soal tersulit dari PDF asli untuk bab ini dan bahas langkah demi langkah secara mendetail di sini. Format: ## Soal\\n[tulis soalnya]\\n## Pembahasan\\n[langkah 1]\\n[langkah 2]\\n## Jawaban Akhir\\n[hasil]"
     }
   ]
 }

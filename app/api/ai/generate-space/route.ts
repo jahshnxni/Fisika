@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { spaceId } = body;
+        const { spaceId, force } = body;
         if (!spaceId) {
             return NextResponse.json({ error: "spaceId is required" }, { status: 400 });
         }
@@ -26,56 +26,89 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Space not found" }, { status: 404 });
         }
 
-        if (space.isGenerated) {
+        // Skip if already generated, unless force=true (Rebuild button)
+        if (space.isGenerated && !force) {
             return NextResponse.json({ success: true, message: "Already generated." });
         }
 
-        const textToAnalyze = space.pdfText ? space.pdfText.substring(0, 15000) : "Teks kosong.";
+        const textToAnalyze = space.pdfText ? space.pdfText.substring(0, 18000) : "Teks kosong.";
 
-        // 2. Call AI (Gemini Flash Lite or Groq)
+        // 2. Call Gemini with JSON mode enforced
         const geminiKey = process.env.GEMINI_API_KEY;
         let aiResult = "";
+        let geminiError = "";
 
         if (geminiKey) {
             try {
                 const { GoogleGenAI } = await import("@google/genai");
                 const ai = new GoogleGenAI({ apiKey: geminiKey });
+
                 const response = await ai.models.generateContent({
-                    model: "gemini-2.0-flash-lite",
+                    model: "gemini-2.0-flash",
                     contents: [
-                        { role: "user" as const, parts: [{ text: textToAnalyze }] },
+                        {
+                            role: "user" as const,
+                            parts: [{
+                                text: `Berikut adalah teks dari PDF yang perlu dianalisis dan dibuatkan kursus:\n\n${textToAnalyze}\n\nBuat struktur JSON kursus sesuai format yang telah ditentukan.`
+                            }]
+                        }
                     ],
                     config: {
                         systemInstruction: COURSE_BUILDER_PROMPT,
-                        temperature: 0.3,
+                        temperature: 0.4,
+                        responseMimeType: "application/json",
                     },
                 });
-                aiResult = response.text || "{}";
-            } catch (e) {
-                console.error("Gemini Gen Failed", e);
+                aiResult = response.text || "";
+                console.log("[generate-space] AI raw response length:", aiResult.length);
+            } catch (e: any) {
+                geminiError = e.message || "Unknown Gemini error";
+                console.error("[generate-space] Gemini Error:", e);
+            }
+        } else {
+            geminiError = "No GEMINI_API_KEY configured";
+        }
+
+        // 3. Clean and parse JSON (strip any accidental markdown wrapping)
+        const cleaned = aiResult
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .trim();
+
+        let parsedPayload: any = null;
+
+        if (cleaned) {
+            try {
+                parsedPayload = JSON.parse(cleaned);
+                console.log("[generate-space] JSON parsed successfully, lessons:", parsedPayload.lessons?.length);
+            } catch (parseError: any) {
+                console.error("[generate-space] JSON parse failed:", parseError.message);
+                console.error("[generate-space] Raw AI output (first 500 chars):", cleaned.substring(0, 500));
             }
         }
 
-        // Clean JSON string (in case the AI wraps it in ```json ... ```)
-        aiResult = aiResult.replace(/```json/g, "").replace(/```/g, "").trim();
+        // 4. Fallback if AI fails
+        if (!parsedPayload || !parsedPayload.lessons) {
+            console.warn("[generate-space] Using fallback. Gemini error:", geminiError);
 
-        // Use Mock data if AI fails parsing JSON
-        let parsedPayload: any = {
-            main_topic: "Pendahuluan",
-            concept_graph: { subtopics: [] },
-            ui_config: { theme: "cosmic" },
-            lessons: [{ title: "Teori Dasar", contentMdx: "AI gagal mengekstrak, ini teks bawaan." }]
-        };
-
-        try {
-            parsedPayload = JSON.parse(aiResult);
-        } catch {
-            console.warn("Using Mock fallback");
+            // Still save but with a clear error message so user knows
+            parsedPayload = {
+                main_topic: space.title || "Pendahuluan",
+                concept_graph: { subtopics: [], concepts: [], formulas: [], prerequisites: [] },
+                ui_config: { theme: "cosmic", layout: "lesson-focused" },
+                lessons: [{
+                    title: "Materi Utama",
+                    contentMdx: `## Perhatian\n\nAI gagal mengekstrak materi dari PDF ini secara otomatis.\n\n**Kemungkinan penyebab:**\n- PDF berisi gambar/scan (bukan teks digital)\n- Teks terlalu panjang atau tidak terbaca\n- Koneksi ke AI timeout\n\n**Silakan coba upload ulang PDF** dengan kualitas teks yang lebih baik, atau tekan tombol "Bangun Ulang" di halaman Overview.`,
+                    scaffoldedExamples: [],
+                    pdfWalkthrough: ""
+                }]
+            };
         }
 
-        // 3. Save into Database (Engine 2 & 8: Database & UI Construction)
+        // 5. Save into Database
         await prisma.$transaction(async (tx) => {
-            // Update Space
+            // Reset and update Space
             await tx.courseSpace.update({
                 where: { id: spaceId },
                 data: {
@@ -87,32 +120,41 @@ export async function POST(req: NextRequest) {
                 }
             });
 
-            // Insert Lessons
-            if (parsedPayload.lessons && parsedPayload.lessons.length > 0) {
-                // Clear existing lessons just in case
-                await tx.generatedLesson.deleteMany({ where: { courseId: spaceId } });
+            // Clear existing lessons before inserting fresh
+            await tx.generatedLesson.deleteMany({ where: { courseId: spaceId } });
 
-                for (let i = 0; i < parsedPayload.lessons.length; i++) {
-                    const l = parsedPayload.lessons[i];
-                    await tx.generatedLesson.create({
-                        data: {
-                            courseId: spaceId,
-                            title: l.title,
-                            slug: `lesson-${i + 1}-${Date.now()}`,
-                            order: i + 1,
-                            contentMdx: l.contentMdx,
-                            scaffoldedMdx: "[]",
-                            pdfWalkthrough: "",
-                        }
-                    });
+            // Insert new lessons with all fields properly mapped
+            const lessons = parsedPayload.lessons || [];
+            for (let i = 0; i < lessons.length; i++) {
+                const l = lessons[i];
+
+                // Normalize scaffoldedExamples to JSON string
+                let scaffoldedMdxStr = "[]";
+                if (Array.isArray(l.scaffoldedExamples) && l.scaffoldedExamples.length > 0) {
+                    scaffoldedMdxStr = JSON.stringify(l.scaffoldedExamples);
+                } else if (Array.isArray(l.scaffoldedMdx)) {
+                    // Backward compat if AI returns scaffoldedMdx directly
+                    scaffoldedMdxStr = JSON.stringify(l.scaffoldedMdx);
                 }
+
+                await tx.generatedLesson.create({
+                    data: {
+                        courseId: spaceId,
+                        title: l.title || `Bab ${i + 1}`,
+                        slug: `${spaceId}-lesson-${i + 1}`,
+                        order: i + 1,
+                        contentMdx: l.contentMdx || "",
+                        scaffoldedMdx: scaffoldedMdxStr,
+                        pdfWalkthrough: l.pdfWalkthrough || "",
+                    }
+                });
             }
         });
 
-        return NextResponse.json({ success: true, data: parsedPayload });
+        return NextResponse.json({ success: true, lessonCount: parsedPayload.lessons.length });
 
     } catch (e: any) {
-        console.error("Generate Space API Error:", e);
+        console.error("[generate-space] Fatal Error:", e);
         return NextResponse.json({ error: e.message || "Gagal membangun kursus" }, { status: 500 });
     }
 }
