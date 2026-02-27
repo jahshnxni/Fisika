@@ -16,21 +16,12 @@ export async function GET(
 
     const space = await prisma.courseSpace.findUnique({
         where: { id: spaceId },
-        select: {
-            buildStatus: true,
-            buildStep: true,
-            buildProgress: true,
-            buildError: true,
-            isGenerated: true,
-        }
+        select: { buildStatus: true, buildStep: true, buildProgress: true, buildError: true }
     });
 
     if (!space) return NextResponse.json({ error: "Space not found" }, { status: 404 });
 
-    // Backward compat: if old record has isGenerated=true but no buildStatus, treat as READY
-    if (space.isGenerated && space.buildStatus === "NEVER_BUILT") {
-        return NextResponse.json({ buildStatus: "READY", buildStep: null, buildProgress: 100, buildError: null });
-    }
-
+    // buildStatus column is authoritative — no backward compat shortcuts
+    // If NEVER_BUILT, the AutoBuildGate will trigger the build pipeline
     return NextResponse.json(space);
 }
