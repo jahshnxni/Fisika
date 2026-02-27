@@ -16,7 +16,7 @@ if (typeof global !== "undefined") {
     }
 }
 
-const pdfParse = require("pdf-parse");
+const { PDFParse } = require("pdf-parse");
 
 export async function POST(req: NextRequest) {
     try {
@@ -36,8 +36,9 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Parse PDF text
-        const pdfData = await pdfParse(buffer);
+        // Parse PDF text using pdf-parse v2 API
+        const parser = new PDFParse({ data: buffer });
+        const pdfData = await parser.getText();
         const text = pdfData.text;
 
         if (!text || text.trim().length === 0) {
