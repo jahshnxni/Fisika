@@ -23,7 +23,7 @@ async function extractWithGeminiVision(buffer: Buffer, filename: string, geminiK
         const { GoogleGenAI } = await import("@google/genai");
         const ai = new GoogleGenAI({ apiKey: geminiKey });
 
-        const blob = new Blob([buffer], { type: "application/pdf" });
+        const blob = new Blob([new Uint8Array(buffer)], { type: "application/pdf" });
         const uploadResult = await ai.files.upload({
             file: blob,
             config: { mimeType: "application/pdf", displayName: filename }
