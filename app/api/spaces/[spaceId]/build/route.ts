@@ -5,30 +5,47 @@ import { authOptions } from "@/lib/auth";
 import { COURSE_BUILDER_PROMPT, QUESTIONS_ONLY_BUILDER_PROMPT } from "@/lib/ai/master-prompt";
 import { detectDocType, detectSubject, segmentQuestions } from "@/lib/docDetect";
 
-// Allow up to 60 seconds on Vercel Pro
 export const maxDuration = 60;
+
+// Models to try in order — each with separate quota pools
+const GEMINI_MODELS = [
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+];
 
 function cleanJson(raw: string): string {
     return raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
-async function callGemini(ai: any, systemPrompt: string, userText: string, retries = 2): Promise<string> {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-            const r = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
-                contents: [{ role: "user" as const, parts: [{ text: userText }] }],
-                config: { systemInstruction: systemPrompt, temperature: 0.3, responseMimeType: "application/json" },
-            });
-            const text = r.text || "";
-            if (text.length > 20) return text;
-        } catch (e: any) {
-            console.warn(`[build] Gemini attempt ${attempt + 1}:`, e.message?.slice(0, 80));
-            if (attempt === retries) throw e;
-            await new Promise(res => setTimeout(res, 800 * (attempt + 1)));
+async function callGeminiWithFallback(systemPrompt: string, userText: string, geminiKey: string): Promise<string> {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+    for (const model of GEMINI_MODELS) {
+        for (let attempt = 0; attempt <= 1; attempt++) {
+            try {
+                console.log(`[build] Trying model: ${model} attempt ${attempt + 1}`);
+                const r = await ai.models.generateContent({
+                    model,
+                    contents: [{ role: "user" as const, parts: [{ text: userText }] }],
+                    config: { systemInstruction: systemPrompt, temperature: 0.3, responseMimeType: "application/json" },
+                });
+                const text = r.text || "";
+                if (text.length > 20) {
+                    console.log(`[build] ✅ Success with model: ${model}`);
+                    return text;
+                }
+            } catch (e: any) {
+                const isQuota = e.message?.includes("429") || e.message?.includes("quota") || e.message?.includes("RESOURCE_EXHAUSTED");
+                console.warn(`[build] Model ${model} attempt ${attempt + 1} failed (quota=${isQuota}):`, e.message?.slice(0, 100));
+                if (isQuota) break; // move to next model
+                if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
+            }
         }
     }
-    return "";
+    throw new Error("Semua model AI sementara mengalami batas kuota. Coba lagi dalam beberapa menit.");
 }
 
 async function setStep(spaceId: string, status: string, step: string | null, progress: number, error?: string | null) {
@@ -38,11 +55,6 @@ async function setStep(spaceId: string, status: string, step: string | null, pro
     });
 }
 
-/**
- * POST /api/spaces/[spaceId]/build
- * Idempotent build trigger + inline AI pipeline (no fire-and-forget).
- * Client awaits this while polling /status every 2s for progress.
- */
 export async function POST(
     _req: NextRequest,
     { params }: { params: Promise<{ spaceId: string }> }
@@ -60,67 +72,57 @@ export async function POST(
         return NextResponse.json({ status: space.buildStatus });
     }
 
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+        await setStep(spaceId, "ERROR", null, 0, "GEMINI_API_KEY tidak dikonfigurasi");
+        return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
+    }
+
     try {
-        // ─── PARSING (10%) ───────────────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "PARSING", 10);
         const fullText = space.pdfText || "";
 
-        // ─── SEGMENTING (25%) ─────────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "SEGMENTING", 25);
         const docType = detectDocType(fullText);
         const subject = detectSubject(fullText);
         const questions = segmentQuestions(fullText);
-        console.log(`[build] spaceId=${spaceId} docType=${docType} subject=${subject} q=${questions.length}`);
+        console.log(`[build] docType=${docType} subject=${subject} questions=${questions.length} textLen=${fullText.length}`);
 
-        // ─── CLASSIFYING (40%) ────────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "CLASSIFYING", 40);
 
-        const geminiKey = process.env.GEMINI_API_KEY;
-        if (!geminiKey) throw new Error("GEMINI_API_KEY not configured");
-
-        const { GoogleGenAI } = await import("@google/genai");
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
         const systemPrompt = docType === "questions_only" ? QUESTIONS_ONLY_BUILDER_PROMPT : COURSE_BUILDER_PROMPT;
-
-        // ─── GENERATING (55%) ─────────────────────────────────────────────
-        await setStep(spaceId, "PROCESSING", "GENERATING", 55);
-
         let userPrompt: string;
+
         if (docType === "questions_only") {
             const sample = questions.slice(0, 6).join("\n\n---\n\n");
-            userPrompt = `Kumpulan soal dari "${space.title}" (mata pelajaran: ${subject || "tidak diketahui"}, total ~${questions.length} soal).\n\nBerikut soal-soal pertama:\n\n${sample}\n\nBangun kursus lengkap dengan materi prasyarat, latihan bertingkat, dan pembahasan soal.`;
+            userPrompt = `Kumpulan soal dari "${space.title}" (mata pelajaran: ${subject || "tidak diketahui"}, total ~${questions.length} soal).\n\nSoal-soal representatif:\n\n${sample}\n\nBangun kursus lengkap dengan materi prasyarat, latihan bertingkat (EASY→EXTREME), dan pembahasan soal dari PDF.`;
         } else {
-            userPrompt = `Dokumen: "${space.title}" (${subject || "tidak diketahui"})\n\n${fullText.substring(0, 5000)}\n\nBangun kursus pembelajaran yang lengkap.`;
+            userPrompt = `Dokumen: "${space.title}" (${subject || "tidak diketahui"})\n\n${fullText.substring(0, 5000)}\n\nBangun kursus pembelajaran lengkap dari konten ini.`;
         }
 
+        await setStep(spaceId, "PROCESSING", "GENERATING", 55);
+
+        // ─── Try all models — throw if ALL fail ──────────────────────────────
         let parsedPayload: any = null;
         try {
-            const raw = await callGemini(ai, systemPrompt, userPrompt, 2);
+            const raw = await callGeminiWithFallback(systemPrompt, userPrompt, geminiKey);
             parsedPayload = JSON.parse(cleanJson(raw));
-        } catch (e: any) {
-            console.error("[build] AI error:", e.message);
+            console.log("[build] AI parsed OK, lessons:", parsedPayload?.lessons?.length);
+        } catch (aiErr: any) {
+            // Set ERROR — don't save stale fallback as READY
+            console.error("[build] All AI models failed:", aiErr.message);
+            await setStep(spaceId, "ERROR", null, 0, aiErr.message);
+            return NextResponse.json({ error: aiErr.message }, { status: 503 });
         }
-
-        // ─── FINALIZING (80%) ─────────────────────────────────────────────
-        await setStep(spaceId, "PROCESSING", "FINALIZING", 80);
 
         if (!parsedPayload?.lessons?.length) {
-            parsedPayload = {
-                main_topic: space.title,
-                ui_config: { theme: docType === "questions_only" ? "science" : "cosmic", layout: "lesson-focused" },
-                concept_graph: { subtopics: [], concepts: [], formulas: [], prerequisites: [] },
-                lessons: [{
-                    title: docType === "questions_only" ? `Soal ${subject || "Ujian"}` : "Materi Utama",
-                    contentMdx: docType === "questions_only"
-                        ? `## Dokumen Soal Terdeteksi\n\nDokumen ini berisi ~${questions.length} soal ${subject ? `mata pelajaran **${subject}**` : ""}.\n\nAI mengalami gangguan saat memproses — tekan **Retry** untuk mencoba lagi.`
-                        : `## Dokumen Terdeteksi\n\nDokumen berhasil dibaca (${fullText.length} karakter). AI gagal memproses.\n\nTekan **Retry** untuk mencoba lagi.`,
-                    scaffoldedExamples: [],
-                    pdfWalkthrough: questions[0] ? `## Contoh Soal\n\n${questions[0]}` : ""
-                }]
-            };
+            await setStep(spaceId, "ERROR", null, 0, "AI mengembalikan respons kosong. Coba lagi.");
+            return NextResponse.json({ error: "Empty AI response" }, { status: 503 });
         }
 
-        // ─── SAVE + READY (100%) ──────────────────────────────────────────
+        // ─── Save to DB as READY ──────────────────────────────────────────────
+        await setStep(spaceId, "PROCESSING", "FINALIZING", 80);
+
         await prisma.$transaction(async (tx) => {
             await tx.courseSpace.update({
                 where: { id: spaceId },
