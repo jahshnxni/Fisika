@@ -116,7 +116,7 @@ export async function uploadFileToGemini(
         try {
             console.log(`[gemini-upload] Trying key ${keyIdx + 1}/${keys.length}`);
             const ai = new GoogleGenAI({ apiKey });
-            const blob = new Blob([data], { type: mimeType });
+            const blob = new Blob([data.buffer as ArrayBuffer], { type: mimeType });
             const result = await ai.files.upload({
                 file: blob,
                 config: { mimeType, displayName }
