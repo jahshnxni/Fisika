@@ -49,8 +49,8 @@ export async function POST(
 
         const systemPrompt = docType === "questions_only" ? QUESTIONS_ONLY_BUILDER_PROMPT : COURSE_BUILDER_PROMPT;
         const userPrompt = docType === "questions_only"
-            ? `Kumpulan soal dari "${space.title}" (mata pelajaran: ${subject || "tidak diketahui"}, total ~${questions.length} soal).\n\nSoal-soal representatif:\n\n${questions.slice(0, 6).join("\n\n---\n\n")}\n\nBangun kursus lengkap dengan materi prasyarat, latihan bertingkat (EASY→EXTREME), dan pembahasan soal.`
-            : `Dokumen: "${space.title}" (${subject || "tidak diketahui"})\n\n${fullText.substring(0, 5000)}\n\nBangun kursus pembelajaran lengkap.`;
+            ? `Kumpulan soal dari "${space.title}" (mata pelajaran: ${subject || "tidak diketahui"}, total ~${questions.length} soal).\n\nBerikut ${Math.min(20, questions.length)} soal representatif dari dokumen:\n\n${questions.slice(0, 20).join("\n\n---\n\n")}\n\nBangun kursus LENGKAP dengan MINIMAL 5 lessons (satu per topik). Setiap lesson harus punya materi prasyarat, soal latihan ABCD, dan pembahasan soal asli dari PDF.`
+            : `Dokumen: "${space.title}" (${subject || "tidak diketahui"})\n\n${fullText.substring(0, 8000)}\n\nBangun kursus pembelajaran LENGKAP dan KOMPREHENSIF dengan MINIMAL 5 lessons.`;
 
         await setStep(spaceId, "PROCESSING", "GENERATING", 55);
 

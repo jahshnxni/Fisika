@@ -14,7 +14,6 @@ Bekerjalah secara sistematis, terstruktur, tidak ngawur, dan berorientasi pada p
 5. Gunakan format Markdown yang rapi dan menarik.`;
 
 // ─── Phase 1: Fast Document Classifier ───────────────────────────────────────
-// Send only first 3000 chars. Returns JSON with doc_type.
 export const DOC_CLASSIFIER_PROMPT = `Kamu adalah classifier dokumen pendidikan. Analisis cuplikan teks PDF berikut dan kembalikan JSON ini:
 {
   "doc_type": "theory" | "questions_only" | "mixed",
@@ -36,64 +35,97 @@ KEMBALIKAN HANYA JSON VALID. TANPA MARKDOWN. TANPA BACKTICK.`;
 export const COURSE_BUILDER_PROMPT = `
 ${AI_IDENTITY}
 
-📥 TUGAS: MEMBANGUN KURSUS DARI DOKUMEN TEORI ATAU CAMPURAN
+📥 TUGAS: MEMBANGUN KURSUS LENGKAP DARI DOKUMEN TEORI ATAU CAMPURAN
 
-Proses dokumen yang berisi teori/penjelasan menjadi modul kursus JSON.
+Kamu WAJIB menghasilkan kursus yang KOMPREHENSIF dan LENGKAP — bukan ringkasan singkat.
 
-Panduan:
-1. Identifikasi judul utama, subbab, definisi, rumus, dan contoh.
-2. Bangun peta konsep dari dasar ke lanjut.
-3. Pilih tema UI yang sesuai konten.
+ATURAN WAJIB:
+- Buat MINIMAL 5 lessons, idealnya 1 lesson per bab/subbab dokumen
+- Setiap lesson: contentMdx MINIMAL 500 kata, dengan teori mendalam, rumus, contoh
+- Setiap lesson: 4 scaffoldedExamples dengan pilihan A/B/C/D (multiple choice) yang realistis
+- pdfWalkthrough: Ambil SOAL ASLI dari PDF dan bahas langkah demi langkah DETAIL (minimal 300 kata per soal)
+- Gunakan \\n untuk baris baru dalam string JSON
 
 === FORMAT OUTPUT (MURNI JSON — TANPA BACKTICK APAPUN) ===
 {
-  "main_topic": "Judul Kursus",
+  "main_topic": "Judul Kursus Lengkap",
   "doc_type": "theory",
   "concept_graph": {
-    "subtopics": ["Bab 1", "Bab 2"],
-    "concepts": ["Konsep kunci 1"],
-    "formulas": ["Rumus penting"],
-    "prerequisites": ["Materi prasyarat"]
+    "subtopics": ["Bab 1: ...", "Bab 2: ...", "Bab 3: ...", "Bab 4: ...", "Bab 5: ..."],
+    "concepts": ["Konsep kunci 1", "Konsep kunci 2", "Konsep kunci 3"],
+    "formulas": ["Rumus penting 1", "Rumus penting 2"],
+    "prerequisites": ["Materi prasyarat 1"]
   },
   "ui_config": { "theme": "cosmic", "layout": "lesson-focused" },
   "lessons": [
     {
-      "title": "Judul Bab",
-      "contentMdx": "## Penjelasan\\nIsi materi di sini. Gunakan \\\\n untuk baris baru.\\n## Rumus\\nRumus dan penjelasan simbol.",
+      "title": "Bab 1: Judul Bab",
+      "contentMdx": "## Pendahuluan\\nPenjelasan panjang dan mendalam tentang topik ini...\\n\\n## Konsep Utama\\nJelaskan setiap konsep dengan detail...\\n\\n## Rumus dan Derivasi\\nRumus: F = ma\\nDimana:\\n- F = Gaya (Newton)\\n- m = massa (kg)\\n- a = percepatan (m/s²)\\n\\n## Contoh Penerapan\\nContoh lengkap dengan langkah-langkah solusi...",
       "scaffoldedExamples": [
-        { "level": "EASY", "question": "Soal mudah", "answer": "Jawaban lengkap" },
-        { "level": "MEDIUM", "question": "Soal menengah", "answer": "Jawaban" },
-        { "level": "HARD", "question": "Soal sulit", "answer": "Jawaban terperinci" },
-        { "level": "EXTREME", "question": "Soal olimpiade", "answer": "Jawaban mendalam" }
+        {
+          "level": "EASY",
+          "question": "Pertanyaan mudah yang jelas dan spesifik?",
+          "options": ["A. Jawaban salah 1", "B. Jawaban benar", "C. Jawaban salah 2", "D. Jawaban salah 3"],
+          "correctIndex": 1,
+          "answer": "Jawaban: B. Penjelasan lengkap mengapa B benar dan opsi lain salah."
+        },
+        {
+          "level": "MEDIUM",
+          "question": "Pertanyaan menengah dengan aplikasi konsep?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 0,
+          "answer": "Jawaban: A. Pembahasan detail langkah demi langkah."
+        },
+        {
+          "level": "HARD",
+          "question": "Pertanyaan sulit yang membutuhkan analisis mendalam?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 2,
+          "answer": "Jawaban: C. Pembahasan komprehensif."
+        },
+        {
+          "level": "EXTREME",
+          "question": "Pertanyaan setara olimpiade/kompetisi nasional?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 3,
+          "answer": "Jawaban: D. Pembahasan mendalam dengan konsep lanjutan."
+        }
       ],
-      "pdfWalkthrough": "## Soal dari PDF\\n[tulis soal]\\n## Pembahasan\\n[langkah demi langkah]\\n## Jawaban\\n[hasil akhir]"
+      "pdfWalkthrough": "## Soal Asli dari PDF\\n[Tulis verbatim soal dari dokumen]\\n\\n## Analisis Soal\\n[Identifikasi konsep yang diuji]\\n\\n## Pembahasan Lengkap Langkah demi Langkah\\nLangkah 1: ...\\nLangkah 2: ...\\nLangkah 3: ...\\n\\n## Jawaban Akhir\\n[Hasil dengan satuan dan interpretasi]"
     }
   ]
-}`;
+}
+
+INGAT: SEMAKIN LENGKAP SEMAKIN BAIK. Target: 5-8 lessons, setiap lesson padat isi.`;
 
 
 // ─── Phase 2B: Questions-Only Document Builder ────────────────────────────────
-// For exam papers (OSN, UTBK, etc.) — builds prerequisite theory FROM questions
 export const QUESTIONS_ONLY_BUILDER_PROMPT = `
 ${AI_IDENTITY}
 
-📋 TUGAS KHUSUS: DOKUMEN INI ADALAH KUMPULAN SOAL UJIAN
+📋 TUGAS KHUSUS: DOKUMEN INI ADALAH KUMPULAN SOAL UJIAN (OSN/UTBK/Olimpiade)
 
-PDF ini berisi soal-soal ujian (bukan buku teks). Strategimu:
+PDF ini berisi soal-soal ujian (bukan buku teks). Kamu harus membangun kursus LENGKAP dan KOMPREHENSIF.
 
-1️⃣ ANALISIS TOPIK: Dari soal-soal, identifikasi 2-4 TOPIK utama yang diujikan.
-2️⃣ BANGUN MATERI PRASYARAT: Untuk setiap topik, buat modul teori yang diperlukan agar bisa mengerjakan soal tersebut.
-3️⃣ PEMBAHASAN SOAL: Pilih 1 soal representatif per topik dan bahas langkah demi langkah.
-4️⃣ BUAT SOAL BERTINGKAT: Buat 4 soal latihan baru (EASY→EXTREME) berbasis topik yang diuji.
+STRATEGI WAJIB:
+1️⃣ IDENTIFIKASI TOPIK: Dari semua soal yang dikirim, identifikasi 5-8 TOPIK UTAMA yang diujikan
+2️⃣ SATU LESSON PER TOPIK: Setiap topik = 1 lesson dengan materi prasyarat LENGKAP (minimal 400 kata)
+3️⃣ SOAL LATIHAN ABCD: Buat 4 soal latihan per lesson dengan pilihan A/B/C/D yang realistis
+4️⃣ PEMBAHASAN SOAL ASLI: Ambil soal dari PDF dan bahas DETAIL MENDALAM (minimal 5 langkah)
 
-PENTING: JANGAN tampilkan "gagal" hanya karena tidak ada blok teori. Soal = panduan topik.
+ATURAN KERAS:
+- WAJIB minimal 5 lessons (satu per topik yang berbeda)
+- SETIAP scaffoldedExample WAJIB punya pilihan A, B, C, D
+- pdfWalkthrough WAJIB berisi soal asli dari PDF + pembahasan langkah demi langkah yang sangat detail
+- contentMdx WAJIB minimal 400 kata per lesson dengan teori prasyarat yang benar-benar berguna
+- JANGAN buat lesson yang isinya hanya "AI gagal" atau "coba lagi"
 
 === FORMAT OUTPUT (MURNI JSON — TANPA BACKTICK APAPUN) ===
 {
-  "main_topic": "Pembahasan Soal [Nama Ujian/Mapel]",
+  "main_topic": "Pembahasan Lengkap Soal [Nama Ujian]",
   "doc_type": "questions_only",
   "concept_graph": {
-    "subtopics": ["Topik 1 yang diuji", "Topik 2 yang diuji"],
+    "subtopics": ["Topik 1", "Topik 2", "Topik 3", "Topik 4", "Topik 5"],
     "concepts": ["Konsep kunci dari soal-soal"],
     "formulas": ["Rumus/algoritma yang dibutuhkan"],
     "prerequisites": ["Materi dasar yang harus dikuasai"]
@@ -101,18 +133,44 @@ PENTING: JANGAN tampilkan "gagal" hanya karena tidak ada blok teori. Soal = pand
   "ui_config": { "theme": "science", "layout": "practice-focused" },
   "lessons": [
     {
-      "title": "Topik [X]: [Nama Topik yang Diuji]",
-      "contentMdx": "## Mengapa Topik Ini Penting?\\nPenjelasan relevansi.\\n\\n## Konsep Dasar yang Wajib Dikuasai\\n[Teori prasyarat untuk mengerjakan soal-soal tentang topik ini]\\n\\n## Strategi/Algoritma Penyelesaian\\n[Langkah-langkah umum untuk soal tipe ini]",
+      "title": "Topik 1: [Nama Topik Spesifik]",
+      "contentMdx": "## Pengantar Topik\\nMengapa topik ini penting dan sering muncul di ujian?\\n\\n## Konsep Dasar yang Wajib Dikuasai\\nJelaskan teori lengkap...\\n\\n## Rumus/Algoritma Kunci\\nRumus 1: ...\\nRumus 2: ...\\n\\n## Strategi Mengerjakan Soal Tipe Ini\\nLangkah 1: Baca soal dan identifikasi...\\nLangkah 2: ...\\n\\n## Kesalahan Umum yang Harus Dihindari\\n- Kesalahan 1: ...\\n- Kesalahan 2: ...",
       "scaffoldedExamples": [
-        { "level": "EASY", "question": "Soal dasar topik ini", "answer": "Jawaban + penjelasan" },
-        { "level": "MEDIUM", "question": "Soal menengah", "answer": "Pembahasan" },
-        { "level": "HARD", "question": "Soal mirip dengan yang ada di ujian", "answer": "Pembahasan mendalam" },
-        { "level": "EXTREME", "question": "Soal olimpiade lanjut", "answer": "Pembahasan komprehensif" }
+        {
+          "level": "EASY",
+          "question": "Soal dasar tentang topik ini yang bisa dijawab dengan konsep paling fundamental?",
+          "options": ["A. Pilihan salah yang masuk akal", "B. Jawaban yang benar", "C. Pilihan salah lainnya", "D. Pilihan salah lainnya"],
+          "correctIndex": 1,
+          "answer": "Jawaban: B.\\nPenjelasan: [Jelaskan mengapa B benar secara detail, dan mengapa A, C, D salah]"
+        },
+        {
+          "level": "MEDIUM",
+          "question": "Soal menengah yang membutuhkan kombinasi 2 konsep?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 2,
+          "answer": "Jawaban: C.\\nLangkah 1: ...\\nLangkah 2: ...\\nHasil: ..."
+        },
+        {
+          "level": "HARD",
+          "question": "Soal sulit mirip soal ujian asli?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 0,
+          "answer": "Jawaban: A.\\nAnalisis mendalam: ..."
+        },
+        {
+          "level": "EXTREME",
+          "question": "Soal olimpiade tingkat lanjut untuk topik ini?",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+          "correctIndex": 3,
+          "answer": "Jawaban: D.\\nPembahasan komprehensif dengan konsep lanjutan: ..."
+        }
       ],
-      "pdfWalkthrough": "## Soal dari Ujian\\n[Tulis verbatim satu soal dari PDF untuk topik ini]\\n\\n## Pembahasan Langkah demi Langkah\\n[Analisis + penyelesaian]\\n\\n## Jawaban Akhir\\n[Hasil]"
+      "pdfWalkthrough": "## Soal Asli dari Ujian\\n[Salin verbatim satu soal dari PDF yang berkaitan dengan topik ini, termasuk semua pilihan jawaban A/B/C/D]\\n\\n## Identifikasi Konsep yang Diuji\\n[Sebutkan konsep/topik apa yang diuji soal ini]\\n\\n## Pembahasan Lengkap Langkah demi Langkah\\nLangkah 1: Baca soal — [analisis]\\nLangkah 2: Identifikasi data — [apa yang diketahui]\\nLangkah 3: Tentukan pendekatan — [metode/rumus yang digunakan]\\nLangkah 4: Eksekusi — [hitung/analisis step by step]\\nLangkah 5: Verifikasi — [cek jawaban]\\n\\n## Jawaban Akhir\\n[Jawaban dengan penjelasan mengapa pilihan ini benar dan pilihan lain salah]"
     }
   ]
-}`;
+}
+
+INGAT: Target MINIMAL 5 lessons. SETIAP lesson harus informatif dan berguna untuk belajar.`;
 
 
 // ─── Chat / Tutor Prompts ─────────────────────────────────────────────────────
