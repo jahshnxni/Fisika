@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { COURSE_BUILDER_PROMPT, QUESTIONS_ONLY_BUILDER_PROMPT } from "@/lib/ai/master-prompt";
+import { TOPIC_EXTRACTOR_PROMPT, SINGLE_LESSON_GENERATOR_PROMPT } from "@/lib/ai/master-prompt";
 import { detectDocType, detectSubject, segmentQuestions } from "@/lib/docDetect";
-import { callGeminiRotated } from "@/lib/geminiRotator";
+import { callAiRotated } from "@/lib/geminiRotator";
 
 export const maxDuration = 60;
 
@@ -36,52 +36,105 @@ export async function POST(
     }
 
     try {
+        // ─── STEP 1: Parse & detect ───────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "PARSING", 10);
         const fullText = space.pdfText || "";
-
-        await setStep(spaceId, "PROCESSING", "SEGMENTING", 25);
         const docType = detectDocType(fullText);
         const subject = detectSubject(fullText);
         const questions = segmentQuestions(fullText);
         console.log(`[build] docType=${docType} subject=${subject} q=${questions.length} len=${fullText.length}`);
 
+        // ─── STEP 2: Extract topic list (1 fast AI call) ─────────────────────
+        await setStep(spaceId, "PROCESSING", "SEGMENTING", 25);
+
+        const contextForTopics = docType === "questions_only"
+            ? `Dokumen: "${space.title}" (${subject})\nJenis: Kumpulan soal (${questions.length} soal)\n\nSoal representatif:\n${questions.slice(0, 15).join("\n\n")}`
+            : `Dokumen: "${space.title}" (${subject})\n\n${fullText.substring(0, 6000)}`;
+
+        let topicsPayload: any = null;
+        try {
+            const raw = await callAiRotated({ systemPrompt: TOPIC_EXTRACTOR_PROMPT, userText: contextForTopics });
+            topicsPayload = JSON.parse(cleanJson(raw));
+            console.log(`[build] Topics extracted: ${topicsPayload?.topics?.length}`);
+        } catch (e: any) {
+            await setStep(spaceId, "ERROR", null, 0, `Gagal mengidentifikasi topik: ${e.message}`);
+            return NextResponse.json({ error: e.message }, { status: 503 });
+        }
+
+        const topics: Array<{ title: string; description: string; relevantContent: string }> =
+            topicsPayload?.topics?.slice(0, 7) || [];
+
+        if (topics.length === 0) {
+            await setStep(spaceId, "ERROR", null, 0, "Tidak ada topik teridentifikasi dari dokumen.");
+            return NextResponse.json({ error: "No topics found" }, { status: 503 });
+        }
+
+        // ─── STEP 3: Generate each lesson IN PARALLEL (dedicated AI call) ─────
         await setStep(spaceId, "PROCESSING", "CLASSIFYING", 40);
 
-        const systemPrompt = docType === "questions_only" ? QUESTIONS_ONLY_BUILDER_PROMPT : COURSE_BUILDER_PROMPT;
-        const userPrompt = docType === "questions_only"
-            ? `Kumpulan soal dari "${space.title}" (mata pelajaran: ${subject || "tidak diketahui"}, total ~${questions.length} soal).\n\nBerikut ${Math.min(20, questions.length)} soal representatif dari dokumen:\n\n${questions.slice(0, 20).join("\n\n---\n\n")}\n\nBangun kursus LENGKAP dengan MINIMAL 5 lessons (satu per topik). Setiap lesson harus punya materi prasyarat, soal latihan ABCD, dan pembahasan soal asli dari PDF.`
-            : `Dokumen: "${space.title}" (${subject || "tidak diketahui"})\n\n${fullText.substring(0, 8000)}\n\nBangun kursus pembelajaran LENGKAP dan KOMPREHENSIF dengan MINIMAL 5 lessons.`;
+        const relevantQuestions = questions.slice(0, 20);
+
+        const lessonPromises = topics.map(async (topic, i) => {
+            const userText = `Kamu sedang mengajar topik: "${topic.title}"
+Mata pelajaran: ${subject || topicsPayload.subject || "tidak diketahui"}
+Jenis dokumen: ${docType}
+
+Deskripsi topik: ${topic.description}
+
+Konten relevan dari dokumen:
+${topic.relevantContent || ""}
+
+${relevantQuestions.length > 0 ? `Soal-soal dari PDF yang berkaitan:\n${relevantQuestions.filter(q => q.toLowerCase().includes(topic.title.toLowerCase().split(" ")[0]) || true).slice(0, 5).join("\n\n")}` : ""}
+
+Buat satu bab pelajaran SANGAT LENGKAP (minimal 600 kata) tentang topik ini. Tulis seperti guru les privat yang menjelaskan materi kepada siswa SMA/olimpiade.`;
+
+            try {
+                const raw = await callAiRotated({
+                    systemPrompt: SINGLE_LESSON_GENERATOR_PROMPT,
+                    userText,
+                });
+                const lesson = JSON.parse(cleanJson(raw));
+                lesson._order = i + 1;
+                return lesson;
+            } catch (e: any) {
+                console.error(`[build] Lesson ${i + 1} "${topic.title}" failed:`, e.message?.slice(0, 80));
+                // Return minimal fallback for this one lesson
+                return {
+                    title: `Topik ${i + 1}: ${topic.title}`,
+                    contentMdx: `## ${topic.title}\n\n${topic.description}\n\nAI gagal menghasilkan materi lengkap untuk topik ini. Coba tekan Retry.`,
+                    scaffoldedExamples: [],
+                    pdfWalkthrough: "",
+                    _order: i + 1,
+                };
+            }
+        });
 
         await setStep(spaceId, "PROCESSING", "GENERATING", 55);
 
-        // ─── Multi-key × multi-model rotation ────────────────────────────────
-        let parsedPayload: any = null;
-        try {
-            const raw = await callGeminiRotated({ systemPrompt, userText: userPrompt });
-            parsedPayload = JSON.parse(cleanJson(raw));
-            console.log(`[build] ✅ Parsed ${parsedPayload?.lessons?.length} lessons`);
-        } catch (aiErr: any) {
-            console.error("[build] All keys/models failed:", aiErr.message);
-            await setStep(spaceId, "ERROR", null, 0, aiErr.message);
-            return NextResponse.json({ error: aiErr.message }, { status: 503 });
-        }
+        // Run all lesson generations concurrently
+        const lessons = await Promise.all(lessonPromises);
+        console.log(`[build] Generated ${lessons.length} lessons`);
 
-        if (!parsedPayload?.lessons?.length) {
-            await setStep(spaceId, "ERROR", null, 0, "AI mengembalikan respons kosong. Coba lagi.");
-            return NextResponse.json({ error: "Empty AI response" }, { status: 503 });
-        }
+        // ─── STEP 4: Save to DB ───────────────────────────────────────────────
+        await setStep(spaceId, "PROCESSING", "FINALIZING", 85);
 
-        await setStep(spaceId, "PROCESSING", "FINALIZING", 80);
+        // Build concept graph from topics
+        const conceptGraph = {
+            subtopics: topics.map(t => t.title),
+            concepts: topics.map(t => t.description).slice(0, 5),
+            formulas: [],
+            prerequisites: [],
+        };
 
         await prisma.$transaction(async (tx) => {
             await tx.courseSpace.update({
                 where: { id: spaceId },
                 data: {
-                    title: parsedPayload.main_topic || space.title,
+                    title: topicsPayload.main_topic || space.title,
                     isGenerated: true,
-                    theme: parsedPayload.ui_config?.theme || "cosmic",
-                    uiConfig: JSON.stringify(parsedPayload.ui_config || {}),
-                    conceptGraph: JSON.stringify(parsedPayload.concept_graph || {}),
+                    theme: docType === "questions_only" ? "science" : "cosmic",
+                    uiConfig: JSON.stringify({ theme: docType === "questions_only" ? "science" : "cosmic", layout: "lesson-focused" }),
+                    conceptGraph: JSON.stringify(conceptGraph),
                     buildStatus: "READY",
                     buildStep: "FINALIZING",
                     buildProgress: 100,
@@ -89,14 +142,14 @@ export async function POST(
                 }
             });
             await tx.generatedLesson.deleteMany({ where: { courseId: spaceId } });
-            for (let i = 0; i < parsedPayload.lessons.length; i++) {
-                const l = parsedPayload.lessons[i];
+            for (let i = 0; i < lessons.length; i++) {
+                const l = lessons[i];
                 await tx.generatedLesson.create({
                     data: {
                         courseId: spaceId,
                         title: l.title || `Topik ${i + 1}`,
                         slug: `${spaceId}-lesson-${i + 1}`,
-                        order: i + 1,
+                        order: l._order || i + 1,
                         contentMdx: l.contentMdx || "",
                         scaffoldedMdx: Array.isArray(l.scaffoldedExamples) ? JSON.stringify(l.scaffoldedExamples) : "[]",
                         pdfWalkthrough: l.pdfWalkthrough || "",
@@ -105,7 +158,7 @@ export async function POST(
             }
         });
 
-        return NextResponse.json({ status: "READY", docType, lessonCount: parsedPayload.lessons.length });
+        return NextResponse.json({ status: "READY", lessonCount: lessons.length, docType });
 
     } catch (e: any) {
         console.error("[build] Fatal:", e.message);
