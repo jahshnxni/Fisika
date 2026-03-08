@@ -1,0 +1,77 @@
+from manim import *
+from manim import config as mconfig
+
+# ─── Config ───────────────────────────────────────────────────────────────────
+mconfig.background_color = "#0D1117"
+ACCENT = "#58A6FF"
+SUCCESS = "#3FB950"
+MUTED = "#8B949E"
+TEXT_COLOR = "#E6EDF3"
+FPS = {{ fps }}
+
+class {{ class_name }}(Scene):
+    def construct(self):
+        # ── Title bar ────────────────────────────────────────────────────────
+        {% if screen_text %}
+        title = Text(
+            {{ screen_text[0]|tojson }},
+            font_size=36,
+            color=TEXT_COLOR,
+            font="monospace",
+        ).to_edge(UP, buff=0.4)
+        self.play(FadeIn(title), run_time=0.6)
+        {% endif %}
+
+        # ── LaTeX steps ──────────────────────────────────────────────────────
+        {% for line in latex_lines %}
+        eq_{{ loop.index0 }} = MathTex(
+            r"{{ line }}",
+            font_size={% if loop.index0 == 0 %}52{% else %}46{% endif %},
+            color={% if loop.index0 == 0 %}ACCENT{% else %}TEXT_COLOR{% endif %},
+        )
+        {% if loop.index0 == 0 %}
+        eq_{{ loop.index0 }}.next_to(title, DOWN, buff=0.8)
+        self.play(Write(eq_{{ loop.index0 }}), run_time=0.9)
+        {% elif loop.index0 == 1 %}
+        eq_{{ loop.index0 }}.next_to(eq_0, DOWN, buff=0.6)
+        arrow_{{ loop.index0 }} = Arrow(
+            eq_{{ loop.index0 - 1 }}.get_bottom(), eq_{{ loop.index0 }}.get_top(),
+            buff=0.1, color=ACCENT, max_tip_length_to_length_ratio=0.15
+        )
+        self.play(GrowArrow(arrow_{{ loop.index0 }}), run_time=0.4)
+        self.play(TransformMatchingShapes(eq_{{ loop.index0 - 1 }}.copy(), eq_{{ loop.index0 }}), run_time=1.0)
+        {% else %}
+        eq_{{ loop.index0 }}.next_to(eq_{{ loop.index0 - 1 }}, DOWN, buff=0.5)
+        arrow_{{ loop.index0 }} = Arrow(
+            eq_{{ loop.index0 - 1 }}.get_bottom(), eq_{{ loop.index0 }}.get_top(),
+            buff=0.1, color=MUTED, max_tip_length_to_length_ratio=0.12
+        )
+        self.play(GrowArrow(arrow_{{ loop.index0 }}), run_time=0.3)
+        self.play(Write(eq_{{ loop.index0 }}), run_time=0.9)
+        {% endif %}
+        {% endfor %}
+
+        # ── Focus highlight on last equation ─────────────────────────────────
+        {% if latex_lines %}
+        box = SurroundingRectangle(
+            eq_{{ latex_lines|length - 1 }},
+            color=SUCCESS,
+            buff=0.15,
+            corner_radius=0.1,
+        )
+        self.play(Create(box), run_time=0.5)
+        {% endif %}
+
+        # ── Screen text lines 1+ ─────────────────────────────────────────────
+        {% for line in screen_text[1:] %}
+        note_{{ loop.index0 }} = Text(
+            {{ line|tojson }},
+            font_size=24,
+            color=MUTED,
+        ).to_edge(DOWN, buff=0.4 + {{ loop.index0 }} * 0.35)
+        self.play(FadeIn(note_{{ loop.index0 }}), run_time=0.5)
+        {% endfor %}
+
+        # ── Hold final frame ─────────────────────────────────────────────────
+        self.wait({{ [duration_sec - 4, 1.5] | max }})
+        self.play(*[FadeOut(mob) for mob in self.mobjects], run_time=0.5)
