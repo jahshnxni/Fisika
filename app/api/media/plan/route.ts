@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateObject } from "ai";
-import { openai, MODELS } from "@/lib/ai/client";
+import { openai } from "@ai-sdk/openai";
+import { MODELS } from "@/lib/ai/models";
 import { VideoStoryboardSchema, ImageBriefSchema } from "@/lib/ai/schemas";
 import { mediaPlanner } from "@/lib/ai/prompts/media-planner";
 import { chooseMediaEngine } from "@/lib/media/router";
@@ -43,9 +44,8 @@ export async function POST(req: NextRequest) {
         : outputType;
 
     const engine = chooseMediaEngine({
-        outputType: resolvedOutputType,
+        outputType: resolvedOutputType as "image" | "video",
         formulaDensity,
-        needsStepByStep: (body.solutionSteps?.length ?? 0) > 0,
         needsPreciseMathTypesetting: formulaDensity > 0.6,
         needsCinematicClip: false,
     });

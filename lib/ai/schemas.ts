@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// ─── Scene Schema ─────────────────────────────────────────────────────────────
+// ─── Scene Schema — matches blueprint exactly ─────────────────────────────────
 export const SceneSchema = z.object({
     id: z.string(),
     type: z.enum([
@@ -20,7 +20,7 @@ export const SceneSchema = z.object({
 });
 export type Scene = z.infer<typeof SceneSchema>;
 
-// ─── Video Storyboard Schema ──────────────────────────────────────────────────
+// ─── Video Storyboard Schema — voiceover/subtitles at TOP LEVEL ───────────────
 export const VideoStoryboardSchema = z.object({
     videoType: z.enum(["solution_explainer", "concept_explainer", "weakness_recap"]),
     enginePreference: z.enum(["remotion", "manim", "sora"]),
@@ -28,14 +28,8 @@ export const VideoStoryboardSchema = z.object({
     targetLevel: z.enum(["beginner", "intermediate", "advanced"]),
     durationSec: z.number().min(15).max(240),
     goal: z.string(),
-    style: z.object({
-        tone: z.string().default("clear_premium_friendly"),
-        pace: z.string().default("calm"),
-        voiceover: z.boolean().default(true),
-        subtitles: z.boolean().default(true),
-        showPointer: z.boolean().default(true),
-        showFormulaLatex: z.boolean().default(true),
-    }).optional(),
+    voiceover: z.boolean().default(true),
+    subtitles: z.boolean().default(true),
     scenes: z.array(SceneSchema).min(3),
     commonMistakes: z.array(z.string()).default([]),
     microQuiz: z.object({
@@ -53,8 +47,8 @@ export const ImageBriefSchema = z.object({
     title: z.string(),
     keyPoints: z.array(z.string()).max(8),
     style: z.enum(["clean_minimal", "dark_premium", "educational_colorful"]).default("dark_premium"),
-    includeFormula: z.string().optional(), // LaTeX string if needed
-    prompt: z.string(), // Final GPT Image prompt
+    includeFormula: z.string().optional(),
+    prompt: z.string(),
 });
 export type ImageBrief = z.infer<typeof ImageBriefSchema>;
 
@@ -67,7 +61,7 @@ export const QuizItemSchema = z.object({
     options: z.array(z.string()).length(4),
     correctIndex: z.number().min(0).max(3),
     explanation: z.string(),
-    errorDiagnosis: z.record(z.string(), z.string()).optional(), // {"A": "why A is wrong", ...}
+    errorDiagnosis: z.record(z.string(), z.string()).optional(),
     hint1: z.string().optional(),
     hint2: z.string().optional(),
     hint3: z.string().optional(),
@@ -77,20 +71,18 @@ export type QuizItem = z.infer<typeof QuizItemSchema>;
 // ─── Mastery Signal Schema ────────────────────────────────────────────────────
 export const MasterySignalSchema = z.object({
     subtopic: z.string(),
-    concept: z.number().min(0).max(100),       // Conceptual understanding
-    logic: z.number().min(0).max(100),          // Logical reasoning
-    accuracy: z.number().min(0).max(100),       // Calculation accuracy
-    independence: z.number().min(0).max(100),   // Can solve without hints
-    confidence: z.number().min(0).max(100),     // Self-assessed, calibrated
-    speed: z.number().min(0).max(100),          // Relative attempt speed
-    stability: z.number().min(0).max(100),      // Consistent across attempts
+    concept: z.number().min(0).max(100),
+    logic: z.number().min(0).max(100),
+    accuracy: z.number().min(0).max(100),
+    independence: z.number().min(0).max(100),
+    confidence: z.number().min(0).max(100),
+    speed: z.number().min(0).max(100),
+    stability: z.number().min(0).max(100),
 });
 export type MasterySignal = z.infer<typeof MasterySignalSchema>;
 
-// Derived fields
-export type WeaknessLabel =
-    | "concept" | "logic" | "interpretation"
-    | "calculation" | "notation" | "strategy";
+// ─── Derived Mastery Fields ───────────────────────────────────────────────────
+export type WeaknessLabel = "concept" | "logic" | "interpretation" | "calculation" | "notation" | "strategy";
 
 export function deriveWeakness(signal: MasterySignal): {
     label: WeaknessLabel;
@@ -98,15 +90,19 @@ export function deriveWeakness(signal: MasterySignal): {
     needsRemedial: boolean;
     readinessScore: number;
 } {
+    // Readiness = weighted average of key signals
     const readinessScore = Math.round(
-        (signal.concept * 0.25 + signal.logic * 0.2 + signal.accuracy * 0.2 +
-            signal.independence * 0.2 + signal.stability * 0.15)
+        signal.concept * 0.25 + signal.logic * 0.20 + signal.accuracy * 0.20 +
+        signal.independence * 0.20 + signal.stability * 0.15
     );
+
     let label: WeaknessLabel = "concept";
     if (signal.concept < 60) label = "concept";
     else if (signal.logic < 60) label = "logic";
     else if (signal.accuracy < 60) label = "calculation";
     else if (signal.independence < 50) label = "strategy";
+    else if (signal.stability < 50) label = "concept"; // unstable → reteach
+
     return {
         label,
         needsMedia: signal.concept < 60 ? "video" : signal.logic < 70 ? "image" : "none",
@@ -128,6 +124,26 @@ export const UiPatchProposalSchema = z.object({
     successMetrics: z.array(z.string()),
 });
 export type UiPatchProposal = z.infer<typeof UiPatchProposalSchema>;
+
+// ─── Generate Quiz Tool Output ────────────────────────────────────────────────
+export const GenerateQuizOutputSchema = z.object({
+    questions: z.array(QuizItemSchema).min(1).max(5),
+    topicCovered: z.string(),
+    recommendedAfterScore: z.number().min(0).max(100),
+});
+export type GenerateQuizOutput = z.infer<typeof GenerateQuizOutputSchema>;
+
+// ─── Media Proposal (tool output) ─────────────────────────────────────────────
+export const ProposeMediaOutputSchema = z.object({
+    shouldGenerate: z.boolean(),
+    outputType: z.enum(["image", "video"]).optional(),
+    engine: z.enum(["gpt-image", "remotion", "manim", "sora", "tts"]).optional(),
+    pedagogicalReason: z.string(),
+    topic: z.string(),
+    imageBrief: ImageBriefSchema.optional(),
+    storyboardOutline: z.string().optional(),
+});
+export type ProposeMediaOutput = z.infer<typeof ProposeMediaOutputSchema>;
 
 // ─── Media Job Schema ─────────────────────────────────────────────────────────
 export const MediaJobSchema = z.object({

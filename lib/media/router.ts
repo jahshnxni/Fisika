@@ -3,35 +3,31 @@ import type { MasterySignal } from "@/lib/ai/schemas";
 // ─── Media Engine Types ───────────────────────────────────────────────────────
 export type MediaEngine = "gpt-image" | "remotion" | "manim" | "sora" | "tts";
 
+// Blueprint §11: exact router interface
 interface MediaRouterInput {
-    outputType: "image" | "video" | "audio";
-    formulaDensity?: number;       // 0.0 – 1.0  (proportion of content that is math/latex)
-    needsStepByStep?: boolean;     // sequential steps required
-    needsPreciseMathTypesetting?: boolean;
-    needsCinematicClip?: boolean;  // intro/outro/motivational only
-    isVoiceover?: boolean;
+    outputType: "image" | "video";
+    formulaDensity: number;
+    needsPreciseMathTypesetting: boolean;
+    needsCinematicClip: boolean;
 }
 
 /**
- * Choose the best media engine for a given output type and content characteristics.
+ * Blueprint §11 — choose engine with simple deterministic rules:
  *
- * Remotion-style explainer  — video, general / mixed content, UI-like.
- * Manim-style math animation — video, formula-heavy, requires LaTeX precision.
- * GPT Image                 — diagrams, concept cards, infographics.
- * Sora                      — cinematic intro/outro only, NOT for solution steps.
- * TTS                       — audio voiceover.
+ * gpt-image  → any still image/diagram
+ * sora       → intro/outro/motivational (≤12s) — NOT for solution steps
+ * manim      → formula-heavy or math precision required
+ * remotion   → all other video (default)
+ *
+ * Never adds audio — TTS is a separate call.
  */
 export function chooseMediaEngine(input: MediaRouterInput): MediaEngine {
-    const { outputType, formulaDensity = 0, needsPreciseMathTypesetting = false,
-        needsCinematicClip = false, isVoiceover = false } = input;
-
-    if (isVoiceover || outputType === "audio") return "tts";
-    if (outputType === "image") return "gpt-image";
-    // Video path:
-    if (needsCinematicClip) return "sora"; // ≤12 s, non-deterministic — intro/outro only
-    if (needsPreciseMathTypesetting || formulaDensity > 0.6) return "manim";
+    if (input.outputType === "image") return "gpt-image";
+    if (input.needsCinematicClip) return "sora";
+    if (input.needsPreciseMathTypesetting || input.formulaDensity > 0.6) return "manim";
     return "remotion";
 }
+
 
 // ─── Mastery-driven media decision ───────────────────────────────────────────
 /**
