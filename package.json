@@ -13,12 +13,14 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.41",
     "@auth/prisma-adapter": "^2.11.1",
     "@google/genai": "^1.42.0",
     "@prisma/client": "^5.22.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@types/three": "^0.182.0",
+    "ai": "^6.0.116",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -42,7 +44,8 @@
     "remark-math": "^6.0.0",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
-    "use-sound": "^5.0.0"
+    "use-sound": "^5.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
