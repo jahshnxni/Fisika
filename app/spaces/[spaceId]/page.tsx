@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import AutoBuildGate from "./_components/AutoBuildGate";
+import ConceptVideoPlayer from "@/components/features/ConceptVideoPlayer";
 import { Cpu, BookOpen, Layers } from "lucide-react";
 
 export default async function SpacePage({
@@ -36,6 +37,12 @@ export default async function SpacePage({
                     Ruang belajar dari <span className="text-accent font-bold">{space.sourcePdfName}</span>.
                     AI telah menyusun materi, latihan, dan pembahasan khusus untuk dokumen ini.
                 </p>
+            </div>
+
+            {/* AI Generated Concept Video Player */}
+            <div className="mb-12">
+                <h2 className="text-2xl font-bold text-white mb-6">Video Pengantar AI</h2>
+                <ConceptVideoPlayer courseId={space.id} topic={space.title} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
