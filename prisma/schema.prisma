@@ -64,6 +64,7 @@ model User {
 
   // AI PDF Builder
   courseSpaces CourseSpace[]
+  masteryProfile MasteryProfile?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -359,14 +360,16 @@ model CourseSpace {
   userId        String
   title         String
   sourcePdfName String?
-  pdfText       String   @default("") // Store raw extracted text to prevent timeout losing context
-  theme         String   @default("modern") // e.g. "modern", "notebook", "science", "cosmic"
-  conceptGraph  String   @default("{}") // JSON: { nodes, edges, topics }
-  uiConfig      String   @default("{}") // JSON: layout settings, menu colors
+  pdfText       String   @default("")
+  blobUrl       String?  // Vercel Blob URL for the original PDF
+  pdfSizeBytes  Int?     // Original PDF size in bytes
+  theme         String   @default("modern")
+  conceptGraph  String   @default("{}")
+  uiConfig      String   @default("{}")
   isGenerated   Boolean  @default(false)
   buildStatus   String   @default("NEVER_BUILT") // NEVER_BUILT | QUEUED | PROCESSING | READY | ERROR
-  buildStep     String?  // PARSING | SEGMENTING | CLASSIFYING | GENERATING | FINALIZING
-  buildProgress Int      @default(0)             // 0-100
+  buildStep     String?
+  buildProgress Int      @default(0)
   buildError    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -374,6 +377,9 @@ model CourseSpace {
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   lessons GeneratedLesson[]
   quizzes GeneratedQuiz[]
+  chunks  DocumentChunk[]
+  mediaJobs MediaJob[]
+  uiPatches UiPatchProposal[]
 }
 
 model GeneratedLesson {
@@ -382,9 +388,9 @@ model GeneratedLesson {
   title          String
   slug           String @unique
   order          Int
-  contentMdx     String @default("") // Basic concepts, formulas
-  scaffoldedMdx  String @default("[]") // JSON Array: [{level: "EASY", question: "", answer: ""}, ...]
-  pdfWalkthrough String @default("") // The specific PDF problem discussed step by step
+  contentMdx     String @default("")
+  scaffoldedMdx  String @default("[]")
+  pdfWalkthrough String @default("")
 
   course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
@@ -392,14 +398,94 @@ model GeneratedLesson {
 model GeneratedQuiz {
   id            String  @id @default(cuid())
   courseId      String
-  lessonId      String? // Optional, if tied to a specific lesson/sub-bab
+  lessonId      String?
   questionMd    String
-  options       String // JSON array
+  options       String
   correctIndex  Int
   explanationMd String
   difficulty    String  @default("MEDIUM")
 
   course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+// --- Document Chunks (per-page indexed text for retrieval) ---
+model DocumentChunk {
+  id          String  @id @default(cuid())
+  courseId    String
+  pageFrom    Int
+  pageTo      Int
+  chunkText   String
+  chunkType   String  @default("paragraph") // paragraph | formula | heading | table | question | diagram
+  embedding   String? // future: vector embedding JSON
+  metadata    String  @default("{}") // JSON: {heading, difficulty, topicHint, formulaCount}
+
+  course    CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@index([courseId])
+  @@index([chunkType])
+}
+
+// --- Media Jobs (async render queue with state machine) ---
+model MediaJob {
+  id           String   @id @default(cuid())
+  courseId     String
+  sourceType   String   // concept | question | weakness | recap
+  mediaType    String   // image | video | audio
+  engine       String   // gpt-image | remotion | manim | sora | tts
+  inputJson    String   // Serialized JSON input (storyboard or image brief)
+  outputUrl    String?  // Vercel Blob URL of rendered asset
+  outputJson   String?  // Serialized JSON output metadata
+  status       String   @default("queued") // queued | running | completed | failed | retryable_failed
+  dedupeKey    String?  // Hash of inputs, prevents re-rendering identical assets
+  errorMessage String?
+  attemptCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, status])
+  @@index([dedupeKey])
+}
+
+// --- UI Patch Proposals (AI-proposed layout changes, never auto-applied) ---
+model UiPatchProposal {
+  id              String   @id @default(cuid())
+  courseId        String
+  area            String   // chat | lesson | media-panel | quiz-panel | dashboard
+  diagnosis       String
+  goal            String
+  patchSummary    String
+  implementationPlan String // JSON array of steps
+  pedagogicalReason  String
+  riskLevel       String   @default("low") // low | medium | high
+  rollbackPlan    String
+  successMetrics  String   // JSON array of strings
+  previewUrl      String?  // Vercel Sandbox preview URL
+  status          String   @default("proposed") // proposed | previewed | approved | rejected | applied
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course CourseSpace @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, status])
+}
+
+// --- Enhanced Mastery Profile (per-subtopic signals) ---
+model MasteryProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  currentTopicMap       String   @default("{}") // JSON: {[subtopic]: MasterySignal}
+  strengths             String   @default("[]") // JSON: string[]
+  weaknesses            String   @default("[]") // JSON: string[]
+  repeatedErrors        String   @default("[]") // JSON: {type, count, subtopic, lastSeen}[]
+  readinessScore        Float    @default(0)    // 0-100, derived
+  confidenceCalibration Float    @default(0)    // 0-100, self vs actual accuracy
+  independenceLevel     Float    @default(0)    // 0-100
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // --- Verification & Security ---
