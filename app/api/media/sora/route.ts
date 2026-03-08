@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { createRawOpenAIClient, MODELS } from "@/lib/ai/client";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -75,12 +76,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const OpenAI = (await import("openai")).default;
-        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-        // OpenAI Video API (Sora) — uses client.videos.generate() or responses API
-        // NOTE: Sora API access is in limited beta. If not available, graceful fallback.
-        const videoModel = process.env.OPENAI_MODEL_VIDEO || "sora-2";
+        const client = createRawOpenAIClient();
+        const videoModel = MODELS.video;
 
         // Use the Responses API with video generation if available
         // @ts-ignore — Video API may not yet be in openai@4 typedefs
