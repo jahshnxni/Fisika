@@ -1,4 +1,5 @@
-import type { VideoStoryboard, MediaEngine } from "@/lib/ai/schemas";
+import type { VideoStoryboard } from "@/lib/ai/schemas";
+import type { MediaEngine } from "@/lib/media/router";
 
 // ─── Environment ──────────────────────────────────────────────────────────────
 const MANIM_WORKER_URL = process.env.MANIM_WORKER_URL || "";

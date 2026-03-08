@@ -9,19 +9,21 @@ import { openai } from "@ai-sdk/openai";
 import { MODELS } from "@/lib/ai/models";
 import { z } from "zod";
 import {
-    QuizItemSchema, GenerateQuizOutputSchema, ProposeMediaOutputSchema,
-    UiPatchProposalSchema, MasterySignalSchema, VideoStoryboardSchema, ImageBriefSchema
+    GenerateQuizOutputSchema,
+    UiPatchProposalSchema,
 } from "@/lib/ai/schemas";
-import { updateMasterySignal, recordError, shouldAdvanceLevel, getHintLevel, serializeState, deserializeState, createInitialMasteryState } from "@/lib/mastery/engine";
+import {
+    updateMasterySignal, recordError, shouldAdvanceLevel,
+    getHintLevel, serializeState, deserializeState, createInitialMasteryState,
+} from "@/lib/mastery/engine";
 import { findRelevantChunks } from "@/lib/pdf/chunker";
 import { chooseMediaEngine } from "@/lib/media/router";
-import { mediaPlanner } from "@/lib/ai/prompts/media-planner";
 import { uiPatchPlanner } from "@/lib/ai/prompts/ui-patch-planner";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// ─── POST /api/ai/chat — Blueprint-aligned with 5 live AI tools ───────────────
+// ─── POST /api/ai/chat ───────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -85,7 +87,7 @@ export async function POST(req: NextRequest) {
             });
         } catch { }
 
-        // ── Build system prompt ───────────────────────────────────────────────
+        // ── System prompt ─────────────────────────────────────────────────────
         const topicKnowledge = findTopicKnowledge(topic || chatSession.topic || undefined);
         let learningProfile: any = null;
         try {
@@ -99,28 +101,30 @@ export async function POST(req: NextRequest) {
                 ? buildPracticePrompt(topicKnowledge, learningProfile)
                 : buildQAPrompt(topicKnowledge, learningProfile);
 
-        // ── Build message list ─────────────────────────────────────────────────
-        const historyMessages: Array<{ role: "user" | "assistant"; content: string }> = [
-            ...existingMessages
-                .filter((m: any) => m.role === "user" || m.role === "assistant")
-                .slice(-14)
-                .map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
-        ];
-        // Merge with incoming (AI SDK already appends last user message to `messages`)
-        const allMessages = messages.length > 1 ? messages : [...historyMessages, { role: "user" as const, content: userMessage }];
+        // ── Build message history ─────────────────────────────────────────────
+        const historyMessages = existingMessages
+            .filter((m: any) => m.role === "user" || m.role === "assistant")
+            .slice(-14)
+            .map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-        // ── Choose provider ───────────────────────────────────────────────────
-        const hasOpenAI = !!process.env.OPENAI_API_KEY;
-        if (!hasOpenAI) return legacyStream(systemPrompt, allMessages, chatSession, user);
+        const allMessages = messages.length > 1
+            ? messages
+            : [...historyMessages, { role: "user" as const, content: userMessage }];
+
+        // ── Fallback if no OpenAI key ─────────────────────────────────────────
+        if (!process.env.OPENAI_API_KEY) {
+            return legacyStream(systemPrompt, allMessages, chatSession);
+        }
 
         // ─────────────────────────────────────────────────────────────────────
-        // AI TOOLS — 5 blueprint-required tools
+        // AI SDK v6 TOOLS — inputSchema (not parameters)
         // ─────────────────────────────────────────────────────────────────────
         const tools = {
+
             // ── 1. getDocumentChunk ─────────────────────────────────────────
             getDocumentChunk: tool({
-                description: "Ambil chunk teks dari PDF dokumen yang relevan dengan pertanyaan user. Gunakan ini saat perlu konteks dari konten asli PDF.",
-                parameters: z.object({
+                description: "Ambil chunk teks dari PDF yang relevan dengan pertanyaan user. Pakai ini saat perlu konteks dari konten asli PDF.",
+                inputSchema: z.object({
                     courseId: z.string().describe("ID cours/space yang berisi PDF"),
                     query: z.string().describe("Pertanyaan atau topik yang dicari"),
                     chunkType: z.enum(["any", "heading", "formula", "question", "paragraph"]).default("any"),
@@ -143,15 +147,17 @@ export async function POST(req: NextRequest) {
                         }));
                         const relevant = findRelevantChunks(textChunks as any, query, 3);
                         return { found: relevant.length > 0, chunks: relevant };
-                    } catch { return { found: false, chunks: [], error: "DB unavailable" }; }
+                    } catch {
+                        return { found: false, chunks: [], error: "DB unavailable" };
+                    }
                 },
             }),
 
             // ── 2. saveMasteryProfile ───────────────────────────────────────
             saveMasteryProfile: tool({
-                description: "Simpan sinyal mastery user setelah interaksi. Panggil ini saat user menjawab soal, menyelesaikan latihan, atau menunjukkan pemahaman/kesalahan.",
-                parameters: z.object({
-                    subtopic: z.string().describe("Subtopik yang baru dipelajari/dilatih"),
+                description: "Simpan sinyal mastery user setelah interaksi. Panggil saat user menjawab soal, menyelesaikan latihan, atau menunjukkan pemahaman/kesalahan.",
+                inputSchema: z.object({
+                    subtopic: z.string().describe("Subtopik yang baru dipelajari"),
                     observation: z.object({
                         concept: z.number().min(0).max(100).optional(),
                         logic: z.number().min(0).max(100).optional(),
@@ -159,7 +165,7 @@ export async function POST(req: NextRequest) {
                         independence: z.number().min(0).max(100).optional(),
                         confidence: z.number().min(0).max(100).optional(),
                     }),
-                    errorType: z.string().optional().describe("Jenis kesalahan jika ada: concept/logic/calculation/notation/strategy"),
+                    errorType: z.string().optional().describe("concept/logic/calculation/notation/strategy"),
                 }),
                 execute: async ({ subtopic, observation, errorType }) => {
                     let newState = updateMasterySignal(masteryState, subtopic, observation);
@@ -167,7 +173,6 @@ export async function POST(req: NextRequest) {
                     const signal = newState.topicMap[subtopic];
                     const canAdvance = signal ? shouldAdvanceLevel(signal) : false;
                     const hintLevel = signal ? getHintLevel(signal) : 3;
-
                     try {
                         const serialized = serializeState(newState);
                         await prisma.masteryProfile.upsert({
@@ -175,9 +180,8 @@ export async function POST(req: NextRequest) {
                             create: { userId: user.id, ...serialized },
                             update: { ...serialized, updatedAt: new Date() },
                         });
-                        masteryState = newState; // update in-scope reference
+                        masteryState = newState;
                     } catch { }
-
                     return {
                         saved: true,
                         readinessScore: newState.readinessScore,
@@ -194,11 +198,11 @@ export async function POST(req: NextRequest) {
 
             // ── 3. generateQuiz ─────────────────────────────────────────────
             generateQuiz: tool({
-                description: "Buat 1-3 soal latihan adaptif berdasarkan topik dan level mastery user saat ini. Gunakan setelah menjelaskan konsep atau saat user siap latihan.",
-                parameters: z.object({
+                description: "Buat 1-3 soal latihan adaptif berdasarkan topik dan level mastery user saat ini.",
+                inputSchema: z.object({
                     topic: z.string().describe("Topik atau subtopik untuk soal"),
-                    level: z.enum(["EASY", "MEDIUM", "HARD", "EXTREME"]).describe("Tingkat kesulitan"),
-                    count: z.number().min(1).max(3).default(2).describe("Jumlah soal"),
+                    level: z.enum(["EASY", "MEDIUM", "HARD", "EXTREME"]),
+                    count: z.number().min(1).max(3).default(2),
                     focus: z.enum(["concept", "calculation", "application", "analysis"]).default("concept"),
                 }),
                 execute: async ({ topic: qTopic, level, count, focus }) => {
@@ -206,13 +210,7 @@ export async function POST(req: NextRequest) {
                         const { object } = await generateObject({
                             model: openai(MODELS.text),
                             schema: GenerateQuizOutputSchema,
-                            prompt: `Buat ${count} soal ${level} tentang "${qTopic}" dengan fokus "${focus}".
-Setiap soal harus:
-- 4 pilihan (A-D), 1 benar
-- Penjelasan lengkap per opsi (errorDiagnosis)
-- 3 level hint bertingkat
-- Tidak ada jawaban giveaway di stem soal
-Bahasa Indonesia. Format JSON sesuai schema.`,
+                            prompt: `Buat ${count} soal ${level} tentang "${qTopic}" dengan fokus "${focus}". Setiap soal: 4 pilihan, 1 benar, penjelasan per opsi (errorDiagnosis), 3 hint bertingkat. Bahasa Indonesia.`,
                         });
                         return { success: true, quiz: object };
                     } catch (e: any) {
@@ -223,10 +221,10 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
 
             // ── 4. proposeMedia ─────────────────────────────────────────────
             proposeMedia: tool({
-                description: "Putuskan apakah perlu membuat gambar atau video penjelas untuk konteks saat ini. Kembalikan brief jika perlu, atau {shouldGenerate: false} jika tidak perlu.",
-                parameters: z.object({
+                description: "Putuskan apakah perlu membuat gambar atau video untuk konteks saat ini.",
+                inputSchema: z.object({
                     topic: z.string(),
-                    concept: z.string().describe("Konsep spesifik yang perlu divisualisasikan"),
+                    concept: z.string().describe("Konsep yang perlu divisualisasikan"),
                     formulaDensity: z.number().min(0).max(1).default(0.3),
                     pedagogicalNeed: z.enum(["concept_visualization", "step_by_step", "comparison", "formula_derivation"]),
                 }),
@@ -238,30 +236,28 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
                         needsPreciseMathTypesetting: formulaDensity > 0.6,
                         needsCinematicClip: false,
                     });
-
-                    if (!needsVideo && engine === "gpt-image") {
+                    if (!needsVideo) {
                         return {
                             shouldGenerate: true,
                             outputType: "image",
                             engine: "gpt-image",
-                            pedagogicalReason: `Konsep "${concept}" butuh visualisasi diagram/concept card`,
+                            pedagogicalReason: `Konsep "${concept}" butuh visualisasi`,
                             topic: mTopic,
                             imageBrief: {
-                                imageType: "concept_card" as const,
-                                topic: mTopic, title: concept,
+                                imageType: "concept_card",
+                                topic: mTopic,
+                                title: concept,
                                 keyPoints: [],
-                                style: "dark_premium" as const,
-                                prompt: `Educational ${pedagogicalNeed} diagram about "${concept}" in the context of "${mTopic}". Dark premium educational style, clear labels, clean layout.`,
+                                style: "dark_premium",
+                                prompt: `Educational ${pedagogicalNeed} diagram about "${concept}" in "${mTopic}". Dark premium educational style.`,
                             },
                         };
                     }
                     return {
-                        shouldGenerate: needsVideo,
+                        shouldGenerate: true,
                         outputType: "video",
                         engine,
-                        pedagogicalReason: needsVideo
-                            ? `Konsep "${concept}" butuh video step-by-step (${engine})`
-                            : "Tidak perlu media tambahan untuk konteks ini",
+                        pedagogicalReason: `Konsep "${concept}" butuh video step-by-step (${engine})`,
                         topic: mTopic,
                     };
                 },
@@ -269,8 +265,8 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
 
             // ── 5. proposeUiPatch ─────────────────────────────────────────────
             proposeUiPatch: tool({
-                description: "Usulkan perubahan UI/layout belajar jika mendeteksi friction pengalaman belajar. JANGAN langsung ubah apapun — hanya buat proposal yang akan di-review manusia.",
-                parameters: z.object({
+                description: "Usulkan perubahan UI/layout belajar jika ada friction. JANGAN langsung ubah apapun — hanya buat proposal yang akan di-review manusia.",
+                inputSchema: z.object({
                     area: z.enum(["chat", "lesson", "media-panel", "quiz-panel", "dashboard"]),
                     frictionDescription: z.string().describe("Deskripsi masalah UX yang terdeteksi"),
                     sessionContext: z.string().optional(),
@@ -283,7 +279,6 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
                             system: uiPatchPlanner,
                             prompt: JSON.stringify({ area, frictionDescription, sessionContext }),
                         });
-                        // Store proposal in DB
                         if (courseId) {
                             try {
                                 await prisma.uiPatchProposal.create({
@@ -311,15 +306,14 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
             }),
         };
 
-        // ── Stream with tools ─────────────────────────────────────────────────
+        // ── Stream ────────────────────────────────────────────────────────────
         const result = streamText({
             model: openai(MODELS.text),
             system: systemPrompt,
             messages: allMessages,
             tools,
-            maxTokens: 4096,
+
             temperature: 0.7,
-            maxSteps: 5, // Allow multi-step tool use (tool call → result → continue)
             onFinish: async ({ text }) => {
                 try {
                     await prisma.chatMessage.create({
@@ -329,23 +323,24 @@ Bahasa Indonesia. Format JSON sesuai schema.`,
             },
         });
 
-        return result.toDataStreamResponse();
+        // AI SDK v6 uses toUIMessageStreamResponse()
+        return result.toUIMessageStreamResponse();
+
     } catch (error: any) {
         console.error("AI Chat error:", error);
         return Response.json({ error: error?.message || "Server error" }, { status: 500 });
     }
 }
 
-// ─── Legacy Gemini/Groq fallback ─────────────────────────────────────────────
+// ─── Legacy Gemini/Groq fallback (when OPENAI_API_KEY not set) ────────────────
 async function legacyStream(
     systemPrompt: string,
     messages: Array<{ role: "user" | "assistant"; content: string }>,
     chatSession: any,
-    user: any
 ) {
-    function sseEncode(data: object) {
-        return new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
-    }
+    const sseEncode = (data: object) =>
+        new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
+
     const stream = new ReadableStream({
         async start(controller) {
             let fullResponse = "";
@@ -359,16 +354,22 @@ async function legacyStream(
                 controller.enqueue(sseEncode({ text: "\n\n⚠️ Streaming error.", sessionId: chatSession.id }));
             }
             if (fullResponse) {
-                try { await prisma.chatMessage.create({ data: { sessionId: chatSession.id, role: "assistant", content: fullResponse } }); } catch { }
+                try {
+                    await prisma.chatMessage.create({
+                        data: { sessionId: chatSession.id, role: "assistant", content: fullResponse },
+                    });
+                } catch { }
             }
             controller.enqueue(sseEncode({ done: true, sessionId: chatSession.id }));
             controller.close();
         },
     });
-    return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" } });
+    return new Response(stream, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+    });
 }
 
-// ─── GET / DELETE unchanged ───────────────────────────────────────────────────
+// ─── GET / DELETE (session management) ───────────────────────────────────────
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -378,13 +379,21 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const sessionId = searchParams.get("sessionId");
         if (sessionId) {
-            const s = await prisma.chatSession.findUnique({ where: { id: sessionId }, include: { messages: { orderBy: { createdAt: "asc" } } } });
+            const s = await prisma.chatSession.findUnique({
+                where: { id: sessionId },
+                include: { messages: { orderBy: { createdAt: "asc" } } },
+            });
             if (!s || s.userId !== user.id) return Response.json({ error: "Not found" }, { status: 404 });
             return Response.json(s);
         }
         return Response.json(await prisma.chatSession.findMany({
-            where: { userId: user.id }, orderBy: { updatedAt: "desc" }, take: 30,
-            select: { id: true, title: true, mode: true, topic: true, updatedAt: true, _count: { select: { messages: true } } },
+            where: { userId: user.id },
+            orderBy: { updatedAt: "desc" },
+            take: 30,
+            select: {
+                id: true, title: true, mode: true, topic: true, updatedAt: true,
+                _count: { select: { messages: true } },
+            },
         }));
     } catch { return Response.json([]); }
 }
