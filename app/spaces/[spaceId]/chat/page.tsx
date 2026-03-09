@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback, use } from "react";
-import { MessageSquare, Send, Bot, User, Sparkles, Loader2, Key } from "lucide-react";
+import React, { useRef, useEffect, use } from "react";
+import { MessageSquare, Send, Bot, User, Sparkles, Loader2, BookOpen, Layers, CheckCircle, Video, Wrench } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { useChat } from "@ai-sdk/react";
+import ConceptVideoPlayer from "@/components/features/ConceptVideoPlayer";
 
 const mdComponents = {
-    p: ({ children, ...props }: any) => <p className="mb-3 leading-relaxed text-slate-200 text-sm md:text-[15px]" {...props}>{children}</p>,
-    ul: ({ children, ...props }: any) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-200 ml-2 text-sm" {...props}>{children}</ul>,
-    ol: ({ children, ...props }: any) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-200 ml-2 text-sm" {...props}>{children}</ol>,
-    li: ({ children, ...props }: any) => <li className="text-sm md:text-[15px]" {...props}>{children}</li>,
+    p: ({ children, ...props }: any) => <p className="mb-3 leading-relaxed text-slate-200 text-[15px]" {...props}>{children}</p>,
+    ul: ({ children, ...props }: any) => <ul className="list-disc list-inside mb-3 space-y-1 text-slate-200 ml-2" {...props}>{children}</ul>,
+    ol: ({ children, ...props }: any) => <ol className="list-decimal list-inside mb-3 space-y-1 text-slate-200 ml-2" {...props}>{children}</ol>,
+    li: ({ children, ...props }: any) => <li className="text-[15px]" {...props}>{children}</li>,
     strong: ({ children, ...props }: any) => <strong className="text-white font-bold" {...props}>{children}</strong>,
     code: ({ inline, className, children, ...props }: any) => (
         inline ? <code className="bg-slate-800 text-violet-300 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>{children}</code> :
@@ -20,113 +22,34 @@ const mdComponents = {
     ),
 };
 
-interface ChatMsg {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-}
-
 export default function SpaceChatPage({
     params
 }: {
     params: Promise<{ spaceId: string }>
 }) {
-    // Unwrap params in Next.js 16
     const resolvedParams = use(params);
     const spaceId = resolvedParams.spaceId;
-
-    const [messages, setMessages] = useState<ChatMsg[]>([]);
-    const [input, setInput] = useState("");
-    const [isStreaming, setIsStreaming] = useState(false);
-    const [streamingContent, setStreamingContent] = useState("");
-    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-
     const chatEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
+    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+        api: "/api/ai/chat",
+        body: {
+            mode: "QA",
+            topic: `PDF_SPACE_${spaceId}`,
+            courseId: spaceId,
+        },
+    } as any) as any;
+
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, streamingContent]);
-
-    const sendMessage = useCallback(async (overrideMsg?: string) => {
-        const msg = overrideMsg || input.trim();
-        if (!msg || isStreaming) return;
-
-        const userMsg: ChatMsg = {
-            id: `temp-${Date.now()}`,
-            role: "user",
-            content: msg,
-        };
-
-        setMessages(prev => [...prev, userMsg]);
-        setInput("");
-        setIsStreaming(true);
-        setStreamingContent("");
-
-        if (inputRef.current) inputRef.current.style.height = "auto";
-
-        try {
-            const res = await fetch("/api/ai/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: msg,
-                    sessionId: activeSessionId,
-                    mode: "QA",
-                    topic: `PDF_SPACE_${spaceId}` // Signal to the backend to use the specific space context if needed
-                }),
-            });
-
-            if (!res.ok && !res.headers.get("content-type")?.includes("text/event-stream")) {
-                throw new Error("Gagal merespons");
-            }
-
-            const reader = res.body?.getReader();
-            if (!reader) throw new Error("Stream gagals");
-
-            const decoder = new TextDecoder();
-            let fullContent = "";
-            let buffer = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\\n");
-                buffer = lines.pop() || "";
-
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.text) {
-                                fullContent += data.text;
-                                setStreamingContent(fullContent);
-                            } else if (data.done && data.sessionId) {
-                                setActiveSessionId(data.sessionId);
-                            }
-                        } catch { }
-                    }
-                }
-            }
-
-            if (fullContent) {
-                setMessages(prev => [...prev, { id: `ai-${Date.now()}`, role: "assistant", content: fullContent }]);
-            }
-
-        } catch (e: any) {
-            setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: "assistant", content: `⚠️ **Error:** ${e.message}` }]);
-        } finally {
-            setIsStreaming(false);
-            setStreamingContent("");
-        }
-    }, [input, isStreaming, activeSessionId, spaceId]);
+    }, [messages]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            const fakeEvent = new Event("submit", { bubbles: true, cancelable: true }) as any;
+            handleSubmit(fakeEvent);
         }
     };
 
@@ -140,52 +63,127 @@ export default function SpaceChatPage({
                 </div>
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">AI PDF Tutor</h1>
-                    <p className="text-slate-400 text-xs md:text-sm">Tanyakan apapun terkait modul hasil ektraksi ini.</p>
+                    <p className="text-slate-400 text-xs md:text-sm">Tutor interaktif dengan akses penuh ke dokumen PDF Anda.</p>
                 </div>
             </div>
 
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-                {messages.length === 0 && !streamingContent ? (
+                {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto opacity-70">
                         <Bot className="w-16 h-16 text-violet-400 mb-6 opacity-50" />
                         <h3 className="text-white text-lg rounded-xl mb-2 font-bold">Saya siap membantu!</h3>
-                        <p className="text-slate-400 text-sm">Anda bisa meminta saya menjelaskan lebih detil bagian materi yang belum dipahami, atau minta dibuatkan soal tambahan.</p>
+                        <p className="text-slate-400 text-sm">Anda bisa meminta saya menjelaskan bagian PDF yang spesifik, membuat _quiz_ latihan, atau memberikan rekomendasi video.</p>
                     </div>
                 ) : (
                     <>
-                        {messages.map(msg => (
-                            <div key={msg.id} className={`flex gap-3 max-w-[90%] md:max-w-[85%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === "user" ? "bg-blue-600" : "bg-violet-600"}`}>
-                                    {msg.role === "user" ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
+                        {messages.map((m: any) => (
+                            <div key={m.id} className={`flex gap-3 max-w-[95%] md:max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
+                                <div className={`w-8 h-8 mt-1 rounded-full flex items-center justify-center shrink-0 ${m.role === "user" ? "bg-blue-600" : "bg-violet-600"}`}>
+                                    {m.role === "user" ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
                                 </div>
-                                <div className={`px-4 py-3 rounded-2xl ${msg.role === "user" ? "bg-blue-600/50 text-white rounded-tr-sm" : "bg-white/10 border border-white/5 rounded-tl-sm text-slate-200"}`}>
-                                    {msg.role === "user" ? (
-                                        <p className="whitespace-pre-wrap text-[15px]">{msg.content}</p>
-                                    ) : (
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={mdComponents as any}>
-                                            {msg.content}
-                                        </ReactMarkdown>
+                                <div className="flex flex-col gap-2 max-w-full">
+                                    {m.content && (
+                                        <div className={`px-4 py-3 rounded-2xl ${m.role === "user" ? "bg-blue-600/50 text-white rounded-tr-sm" : "bg-white/10 border border-white/5 rounded-tl-sm text-slate-200"}`}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={mdComponents as any}>
+                                                {m.content}
+                                            </ReactMarkdown>
+                                        </div>
                                     )}
+
+                                    {/* TOOL INVOCATIONS UI */}
+                                    {m.toolInvocations?.map((toolInvocation: any) => {
+                                        const { toolName, toolCallId, state } = toolInvocation;
+
+                                        if (toolName === "getDocumentChunk") {
+                                            return (
+                                                <div key={toolCallId} className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700 w-fit text-xs text-slate-300">
+                                                    {state === "result" ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />}
+                                                    {state === "result" ? `Memeriksa ${toolInvocation.result?.chunks?.length || 0} halaman PDF relevan` : "Mencari halaman di PDF..."}
+                                                </div>
+                                            );
+                                        }
+
+                                        if (toolName === "saveMasteryProfile") {
+                                            return (
+                                                <div key={toolCallId} className="flex items-center gap-2 px-3 py-2 bg-green-900/20 rounded-lg border border-green-500/20 w-fit text-xs text-green-300">
+                                                    {state === "result" ? <CheckCircle className="w-3.5 h-3.5" /> : <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                                    Mengupdate profil pemahaman Anda
+                                                </div>
+                                            );
+                                        }
+
+                                        if (toolName === "generateQuiz" && state === "result") {
+                                            const quizData = toolInvocation.result?.quiz?.items || [];
+                                            return (
+                                                <div key={toolCallId} className="bg-slate-900 border border-slate-700 rounded-xl p-4 my-2">
+                                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/5">
+                                                        <Layers className="w-4 h-4 text-orange-400" />
+                                                        <span className="text-sm font-bold text-white">Quiz AI Khusus Untuk Anda</span>
+                                                    </div>
+                                                    {quizData.map((q: any, i: number) => (
+                                                        <div key={i} className="mb-4 last:mb-0">
+                                                            <p className="text-sm text-slate-200 mb-2 font-medium">{i + 1}. {q.question}</p>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                {q.options.map((opt: string, j: number) => (
+                                                                    <button key={j} className="text-left px-3 py-2 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-slate-300 transition-colors">
+                                                                        {opt}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        }
+
+                                        if (toolName === "proposeMedia" && state === "result") {
+                                            if (toolInvocation.result?.shouldGenerate) {
+                                                return (
+                                                    <div key={toolCallId} className="my-2 p-1 border border-blue-500/30 rounded-2xl bg-black/40 overflow-hidden w-full max-w-lg">
+                                                        <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5 mb-1">
+                                                            <Video className="w-4 h-4 text-blue-400" />
+                                                            <span className="text-xs font-bold text-white tracking-wide">VIDEO REKOMENDASI AI</span>
+                                                        </div>
+                                                        <ConceptVideoPlayer courseId={spaceId} topic={toolInvocation.args.concept || "Materi AI"} />
+                                                    </div>
+                                                );
+                                            }
+                                        }
+
+                                        if (toolName === "proposeUiPatch") {
+                                            return (
+                                                <div key={toolCallId} className="flex items-center gap-2 px-3 py-2 bg-yellow-900/20 rounded-lg border border-yellow-500/20 w-fit text-xs text-yellow-300">
+                                                    <Wrench className="w-3.5 h-3.5" />
+                                                    Sistem mencatat potensi perbaikan UI (Usulan Patch AI dibuat)
+                                                </div>
+                                            );
+                                        }
+
+                                        // Fallback rendering for pending tools
+                                        if (state !== "result") {
+                                            return (
+                                                <div key={toolCallId} className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700 w-fit text-xs text-slate-300">
+                                                    <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin" />
+                                                    AI sedang bekerja ({toolName})...
+                                                </div>
+                                            );
+                                        }
+
+                                        return null;
+                                    })}
                                 </div>
                             </div>
                         ))}
-                        {isStreaming && streamingContent && (
+                        {isLoading && messages[messages.length - 1]?.role === "user" && (
                             <div className="flex gap-3 max-w-[85%]">
-                                <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-white" /></div>
-                                <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/5 rounded-tl-sm text-slate-200">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={mdComponents as any}>{streamingContent}</ReactMarkdown>
-                                    <div className="flex items-center gap-1 mt-2"><Sparkles className="w-3 h-3 text-violet-400 animate-pulse" /><span className="text-xs text-violet-400">Menulis...</span></div>
+                                <div className="w-8 h-8 mt-1 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                                    <Bot className="w-4 h-4 text-white" />
                                 </div>
-                            </div>
-                        )}
-                        {isStreaming && !streamingContent && (
-                            <div className="flex gap-3 max-w-[85%]">
-                                <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-white" /></div>
                                 <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/5 rounded-tl-sm flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                                    <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                                    <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                                 </div>
                             </div>
                         )}
@@ -195,32 +193,32 @@ export default function SpaceChatPage({
             </div>
 
             {/* Input Box */}
-            <div className="border-t border-white/10 p-4 bg-black/60 backdrop-blur-xl">
+            <form onSubmit={handleSubmit} className="border-t border-white/10 p-4 bg-black/60 backdrop-blur-xl">
                 <div className="flex gap-2 max-w-3xl mx-auto items-end relative">
                     <textarea
                         ref={inputRef}
                         value={input}
                         onChange={(e) => {
-                            setInput(e.target.value);
+                            handleInputChange(e);
                             e.target.style.height = "auto";
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
                         }}
                         onKeyDown={handleKeyDown}
-                        disabled={isStreaming}
-                        placeholder="Ketik pertanyaan terkait PDF di sini..."
+                        disabled={isLoading}
+                        placeholder="Tanyakan materi, minta dibuatkan soal cerita, dll..."
                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-violet-500/50 resize-none"
                         style={{ minHeight: "48px" }}
                         rows={1}
                     />
                     <button
-                        onClick={() => sendMessage()}
-                        disabled={!input.trim() || isStreaming}
+                        type="submit"
+                        disabled={!input.trim() || isLoading}
                         className="p-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:bg-violet-600 text-white rounded-xl transition-colors shrink-0 mb-0.5"
                     >
-                        {isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                     </button>
                 </div>
-            </div>
+            </form>
 
         </div>
     );
