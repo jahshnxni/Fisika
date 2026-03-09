@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Player } from "@remotion/player";
 import { ConceptCardVideo } from "@/remotion/compositions/ConceptCardVideo";
-import { Sparkles, Loader2, Play, RefreshCcw, AlertTriangle } from "lucide-react";
+import {
+    Sparkles, Loader2, RefreshCcw, AlertTriangle,
+    CheckCircle, BookOpen, Video, Play, Pause
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ConceptVideoPlayerProps {
@@ -11,91 +14,161 @@ interface ConceptVideoPlayerProps {
     topic: string;
 }
 
-/**
- * Generates video props for ConceptCardVideo purely on the client side.
- * This avoids any dependency on OpenAI API keys or external services.
- * The Remotion Player renders the video entirely in the browser using React.
- */
-function generateLocalVideoProps(topic: string) {
-    // Smart key points based on topic
-    const genericPoints = [
-        `Memahami konsep dasar ${topic}`,
-        `Menganalisis fenomena ${topic}`,
-        `Penerapan ${topic} dalam kehidupan nyata`,
-        `Menyelesaikan soal dengan strategi efektif`,
-    ];
+// ─── 3-Level Progressive Output Architecture ─────────────────────────────────
+// Level 1 (instant): Storyboard cards + Remotion preview in-browser
+// Level 2 (fast): AI-enriched content from /api/media/plan
+// Level 3 (slow/async): MP4 from Blob URL via /api/media/render job
+// ──────────────────────────────────────────────────────────────────────────────
 
+type VideoState =
+    | "level1_instant"      // Remotion renders locally
+    | "level2_enriching"    // AI enriching content
+    | "level2_ready"        // AI-enriched Remotion preview ready
+    | "level3_queued"       // MP4 render job queued
+    | "level3_rendering"    // MP4 rendering in progress
+    | "level3_ready"        // MP4 available from Blob URL
+    | "error";
+
+function generateLocalVideoProps(topic: string) {
     return {
         title: topic || "Konsep Fisika",
-        keyPoints: genericPoints.slice(0, 4),
+        keyPoints: [
+            `Memahami konsep dasar ${topic}`,
+            `Menganalisis fenomena ${topic}`,
+            `Penerapan dalam kehidupan nyata`,
+            `Strategi penyelesaian soal`,
+        ],
         formula: "",
         style: "dark_premium" as const,
     };
 }
 
-type VideoStatus = "loading" | "ready" | "error" | "enriching";
-
 export default function ConceptVideoPlayer({ courseId, topic }: ConceptVideoPlayerProps) {
-    const [status, setStatus] = useState<VideoStatus>("loading");
+    const [state, setState] = useState<VideoState>("level1_instant");
     const [videoData, setVideoData] = useState<any>(null);
+    const [blobUrl, setBlobUrl] = useState<string | null>(null);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
     const [errorMsg, setErrorMsg] = useState("");
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const initVideo = useCallback(() => {
-        // STEP 1: Immediately generate local props so the video plays instantly
+    // ── Level 1: Instant local render ────────────────────────────────────────
+    useEffect(() => {
         const localProps = generateLocalVideoProps(topic);
         setVideoData(localProps);
-        setStatus("ready");
+        setProgress(25);
 
-        // STEP 2: In the background, try to enrich with AI-generated content (optional, non-blocking)
-        fetch("/api/media/plan", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                topic,
-                courseId,
-                pedagogicalNeed: "concept_visualization",
-                formulaDensity: 0.1,
-                outputType: "image",
-            }),
-        })
-            .then(res => {
-                if (!res.ok) return null; // Silently fail — local props are already showing
-                return res.json();
+        // ── Level 2: Background AI enrichment ────────────────────────────────
+        const enrichTimer = setTimeout(() => {
+            setState("level2_enriching");
+            fetch("/api/media/plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    topic,
+                    courseId,
+                    pedagogicalNeed: "concept_visualization",
+                    formulaDensity: 0.1,
+                    outputType: "image",
+                }),
             })
-            .then(data => {
-                if (!data) return;
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    if (!data) {
+                        setState("level2_ready"); // Use local props, still fine
+                        setProgress(50);
+                        return;
+                    }
+                    const brief = data?.data || data;
+                    const enrichedProps = {
+                        title: brief?.title || localProps.title,
+                        keyPoints: brief?.keyPoints || brief?.bulletPoints || localProps.keyPoints,
+                        formula: brief?.formula || "",
+                        style: "dark_premium" as const,
+                    };
+                    if (enrichedProps.title && enrichedProps.keyPoints?.length > 0) {
+                        setVideoData(enrichedProps);
+                    }
+                    setState("level2_ready");
+                    setProgress(50);
+                })
+                .catch(() => {
+                    setState("level2_ready"); // Graceful fallback
+                    setProgress(50);
+                });
+        }, 500); // Small delay so Level 1 shows first
 
-                // The API returns { type, engine, data } — extract the brief from data
-                const brief = data?.data || data?.imageBrief || data;
-                const enrichedProps = {
-                    title: brief?.title || localProps.title,
-                    keyPoints: brief?.keyPoints || brief?.bulletPoints || localProps.keyPoints,
-                    formula: brief?.formula || "",
-                    style: "dark_premium" as const,
-                };
-
-                // Only update if we got meaningful data
-                if (enrichedProps.title && enrichedProps.keyPoints?.length > 0) {
-                    setVideoData(enrichedProps);
-                }
-            })
-            .catch(() => {
-                // Silently ignore — local video is already playing fine
-                console.log("[ConceptVideoPlayer] AI enrichment failed, using local props");
-            });
+        return () => {
+            clearTimeout(enrichTimer);
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
     }, [topic, courseId]);
 
+    // ── Level 3: Poll job status (if job was created) ────────────────────────
     useEffect(() => {
-        initVideo();
-    }, [initVideo]);
+        if (!jobId) return;
 
-    if (status === "error") {
+        pollRef.current = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/jobs/${jobId}`);
+                if (!res.ok) return;
+                const job = await res.json();
+
+                if (job.status === "completed" && job.outputUrl) {
+                    setBlobUrl(job.outputUrl);
+                    setState("level3_ready");
+                    setProgress(100);
+                    if (pollRef.current) clearInterval(pollRef.current);
+                } else if (job.status === "failed") {
+                    // Stay on Level 2 — Remotion preview still works
+                    setState("level2_ready");
+                    setProgress(50);
+                    if (pollRef.current) clearInterval(pollRef.current);
+                } else if (job.status === "running") {
+                    setState("level3_rendering");
+                    setProgress(75);
+                }
+            } catch {
+                // Ignore poll errors
+            }
+        }, 8000); // Poll every 8 seconds
+
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
+    }, [jobId]);
+
+    // ── Status label for current state ───────────────────────────────────────
+    const statusLabel = {
+        level1_instant: "Preview Instan",
+        level2_enriching: "AI Memperkaya Konten...",
+        level2_ready: "Preview AI",
+        level3_queued: "Merender MP4...",
+        level3_rendering: "Merender Video HD...",
+        level3_ready: "Video HD Siap",
+        error: "Error",
+    }[state];
+
+    const statusColor = {
+        level1_instant: "text-blue-400",
+        level2_enriching: "text-yellow-400",
+        level2_ready: "text-green-400",
+        level3_queued: "text-orange-400",
+        level3_rendering: "text-orange-400",
+        level3_ready: "text-emerald-400",
+        error: "text-red-400",
+    }[state];
+
+    if (state === "error") {
         return (
             <div className="w-full aspect-video rounded-2xl overflow-hidden border border-red-500/20 bg-red-950/20 flex flex-col items-center justify-center gap-3">
                 <AlertTriangle className="w-8 h-8 text-red-400" />
                 <p className="text-red-300 text-sm">{errorMsg || "Gagal memuat video"}</p>
                 <button
-                    onClick={() => { setStatus("loading"); initVideo(); }}
+                    onClick={() => {
+                        setState("level1_instant");
+                        setVideoData(generateLocalVideoProps(topic));
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs transition-colors"
                 >
                     <RefreshCcw className="w-3.5 h-3.5" /> Coba Lagi
@@ -104,47 +177,88 @@ export default function ConceptVideoPlayer({ courseId, topic }: ConceptVideoPlay
         );
     }
 
-    if (status === "loading" || !videoData) {
-        return (
-            <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/40 flex flex-col items-center justify-center">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full animate-pulse" />
-                    <Sparkles className="w-10 h-10 text-violet-400 animate-bounce relative z-10" />
-                </div>
-                <h3 className="text-lg font-bold text-white mt-4 mb-1">Mempersiapkan Video...</h3>
-                <Loader2 className="w-5 h-5 text-violet-400 animate-spin mt-3" />
-            </div>
-        );
-    }
-
+    // Show Remotion player for Level 1 & 2, or HTML5 video for Level 3
     return (
         <div className="w-full relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-2xl group">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="aspect-video w-full relative bg-black"
-            >
-                {/* Live Remotion Player — renders entirely in the browser using React */}
-                <Player
-                    component={ConceptCardVideo}
-                    durationInFrames={450}
-                    compositionWidth={1920}
-                    compositionHeight={1080}
-                    fps={30}
-                    style={{ width: "100%", height: "100%" }}
-                    controls
-                    autoPlay
-                    loop
-                    inputProps={videoData}
+            {/* Progress bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-white/5 z-20">
+                <motion.div
+                    className="h-full bg-gradient-to-r from-violet-500 to-blue-500"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
                 />
+            </div>
 
-                {/* Overlay label */}
-                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 pointer-events-none">
-                    <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                    <span className="text-xs font-bold text-white tracking-wide uppercase">AI Concept Video</span>
-                </div>
-            </motion.div>
+            <AnimatePresence mode="wait">
+                {state === "level3_ready" && blobUrl ? (
+                    /* ── LEVEL 3: Play MP4 from Blob URL ─────────────────── */
+                    <motion.div
+                        key="blob-video"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="aspect-video w-full bg-black"
+                    >
+                        <video
+                            src={blobUrl}
+                            controls
+                            autoPlay
+                            className="w-full h-full object-contain"
+                            poster=""
+                        />
+                    </motion.div>
+                ) : videoData ? (
+                    /* ── LEVEL 1 & 2: Remotion Player (in-browser render) ── */
+                    <motion.div
+                        key="remotion-preview"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                        className="aspect-video w-full relative bg-black"
+                    >
+                        <Player
+                            component={ConceptCardVideo}
+                            durationInFrames={450}
+                            compositionWidth={1280}
+                            compositionHeight={720}
+                            fps={24}
+                            style={{ width: "100%", height: "100%" }}
+                            controls
+                            autoPlay
+                            loop
+                            inputProps={videoData}
+                        />
+                    </motion.div>
+                ) : (
+                    /* ── Loading state ──────────────────────────────────── */
+                    <motion.div
+                        key="loading"
+                        className="aspect-video w-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-black"
+                    >
+                        <Loader2 className="w-10 h-10 text-violet-400 animate-spin" />
+                        <p className="text-slate-400 text-sm mt-4">Mempersiapkan video...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Status overlay */}
+            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 pointer-events-none z-10">
+                {state === "level2_enriching" || state === "level3_rendering" || state === "level3_queued" ? (
+                    <Loader2 className="w-3 h-3 text-yellow-400 animate-spin" />
+                ) : state === "level3_ready" ? (
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
+                ) : (
+                    <Sparkles className="w-3 h-3 text-yellow-400" />
+                )}
+                <span className={`text-xs font-bold tracking-wide uppercase ${statusColor}`}>
+                    {statusLabel}
+                </span>
+            </div>
+
+            {/* MVP spec badge: 720p 24fps */}
+            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-white/10 pointer-events-none z-10">
+                <span className="text-[10px] text-slate-500 font-mono">720p · 24fps</span>
+            </div>
         </div>
     );
 }
