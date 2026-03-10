@@ -39,6 +39,7 @@ export const SINGLE_LESSON_GENERATOR_PROMPT = `${AI_IDENTITY}
 
 Tugasmu: Buat SATU BAB PELAJARAN yang SANGAT LENGKAP untuk satu topik spesifik.
 KEDALAMAN YANG DIHARAPKAN = setara bab buku pelajaran SMA/universitas (minimal 800 kata).
+PENTING: Anda adalah UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE. Hasilkan materi paling pedagogis tanpa bug!
 
 STRUKTUR WAJIB untuk contentMdx:
 1. ## Pengertian dan Intuisi
@@ -86,8 +87,11 @@ FORMAT OUTPUT JSON (tanpa backtick):
     { "level": "HARD", "question": "Soal sulit mirip OSN?", "options": ["A.","B.","C.","D."], "correctIndex": 0, "answer": "Jawaban: A.\\n[pembahasan mendalam]" },
     { "level": "EXTREME", "question": "Soal olimpiade nasional?", "options": ["A.","B.","C.","D."], "correctIndex": 3, "answer": "Jawaban: D.\\n[pembahasan komprehensif]" }
   ],
-  "pdfWalkthrough": "## Soal Asli dari Dokumen\\n[SALIN verbatim soal dari PDF termasuk pilihan A/B/C/D]\\n\\n## Konsep yang Diuji\\n[Nama konsep spesifik]\\n\\n## Pembahasan Langkah demi Langkah\\nLangkah 1: Baca soal — [analisis data dan pertanyaan]\\nLangkah 2: Pilih pendekatan — [kenapa metode ini, bukan yang lain]\\nLangkah 3: Eksekusi — [proses detail dengan angka]\\nLangkah 4: Verifikasi — [cek jawaban, masuk akal?]\\nLangkah 5: Kesimpulan — [hasil + interpretasi + refleksi]\\n\\n## Refleksi Pasca-Soal\\n- Sinyal apa dari soal yang memicu strategi ini?\\n- Di bagian mana orang biasanya salah?\\n- Variasi serupa yang mungkin muncul?"
-}`;
+  "pdfWalkthrough": "Hasilkan persis 6 bagian berikut pakai Markdown:\\n\\n1. ANALISIS SOAL\\n- mata pelajaran, topik, tingkat kesulitan, jebakan.\\n\\n2. BAGIAN PENTING DARI SOAL\\n- kalimat kunci, pola, petunjuk.\\n\\n3. PEMBAHASAN TERSTRUKTUR\\n- Diketahui:\\n- Ditanya:\\n- Dijawab:\\n\\n4. PENJELASAN GURU\\n- detail runtut seperti guru privat.\\n\\n5. VIDEO STORYBOARD\\n[Scene, durasi, narasi, visual]\\n\\n6. CATATAN IMPLEMENTASI VISUAL\\n- Manim/Highlight, dll."
+}
+
+INSTRUKSI WAJIB UNTUK pdfWalkthrough:
+Anda bertindak sebagai UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE. Jawab bagian \`pdfWalkthrough\` dengan kualitas 1.000.000x lipat, sangat terstruktur, pedagogis, gunakan 'Diketahui/Ditanya/Dijawab' bila relevan, dan JANGAN meleset dari 6 bagian wajib di atas!`;
 
 // Legacy aliases
 export const COURSE_BUILDER_PROMPT = SINGLE_LESSON_GENERATOR_PROMPT;
