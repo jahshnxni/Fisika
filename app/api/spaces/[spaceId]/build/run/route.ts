@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { COURSE_BUILDER_PROMPT, QUESTIONS_ONLY_BUILDER_PROMPT } from "@/lib/ai/master-prompt";
+import { COURSE_BUILDER_PROMPT, QUESTIONS_ONLY_BUILDER_PROMPT, QUESTION_EXTRACTOR_PROMPT } from "@/lib/ai/master-prompt";
 import { detectDocType, detectSubject, segmentQuestions } from "@/lib/docDetect";
 
 // Allow up to 60s on Vercel Pro plans
@@ -90,11 +90,11 @@ export async function POST(
         const { GoogleGenAI } = await import("@google/genai");
         const ai = new GoogleGenAI({ apiKey: geminiKey });
 
-        const systemPrompt = docType === "questions_only" ? QUESTIONS_ONLY_BUILDER_PROMPT : COURSE_BUILDER_PROMPT;
+        const hasQuestions = docType === "questions_only" || docType === "mixed" || questions.length > 0;
+        const systemPrompt = hasQuestions ? QUESTION_EXTRACTOR_PROMPT : COURSE_BUILDER_PROMPT;
 
         let userPrompt = `Dokumen: "${space.title}"
 Mata pelajaran: ${subject || "tidak diketahui"}
-Jenis: Dokumen Campuran / Soal Ujian (WAJIB DIBAHAS SEMUA)
 Total Estimasi Soal Terdeteksi: ~${questions.length}
 
 Konten Lengkap PDF:
@@ -103,12 +103,15 @@ Konten Lengkap PDF:
 ${fullText}
 ==================================================
 
-INSTRUKSI WAJIB UNTUK AI (UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE):
-1. Baca dan pahami seluruh isi PDF di atas.
-2. Temukan SEMUA soal yang ada dalam teks di atas (jangan ada yang terlewat, jika ada 50 soal maka angkat 50 soal tersebut sebagai 'lessons').
-3. Bangun kursus pembelajaran lengkap di mana SETIAP SOAL dipecah menjadi SATU 'lesson'.
-4. Pastikan 'pdfWalkthrough' untuk setiap lesson mengikuti persis format 6-bagian yang diwajibkan di prompt utama Anda (Analisis Soal, Bagian Penting, Pembahasan Terstruktur, Penjelasan Guru, Video Storyboard, Catatan Visual).
-5. Jangan gunakan placeholder. Selesaikan setiap perhitungan secara nyata.`;
+INSTRUKSI WAJIB UNTUK AI:
+${hasQuestions
+                ? `1. Ekstrak SEMUA soal secara utuh ke dalam array 'lessons'.
+2. Biarkan 'pdfWalkthrough' kosong.
+3. Pastikan tidak ada soal yang tertinggal.
+4. Jangan menjawab soalnya, cukup ambil teksnya saja.`
+                : `1. Bangun kursus pembelajaran lengkap.
+2. Buat pembahasan mendalam.`}
+`;
 
         // ─── Step 4: Generate ─────────────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "GENERATING", 55);

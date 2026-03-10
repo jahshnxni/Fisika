@@ -1,0 +1,30 @@
+▲ Next.js 16.1.6 (webpack)
+- Environments: .env
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+> [PWA] Compile server
+> [PWA] Compile server
+> [PWA] Compile client (static)
+> [PWA] Auto register service worker with: D:\Lenovo New\Downloads\yeaa\physica-mastery\node_modules\next-pwa\register.js
+> [PWA] Service worker: D:\Lenovo New\Downloads\yeaa\physica-mastery\public\sw.js
+> [PWA]   url: /sw.js
+> [PWA]   scope: /
+✓ Compiled successfully in 45s
+  Running TypeScript ...
+
+
+Failed to compile.
+
+./app/api/ai/solve/route.ts:25:47
+Type error: Expected 1 arguments, but got 2.
+
+[0m [90m 23 |[39m
+ [90m 24 |[39m         [36mconst[39m result [33m=[39m streamText({
+[31m[1m>[22m[39m[90m 25 |[39m             model[33m:[39m google([32m"gemini-2.0-flash"[39m[33m,[39m { useSearchGrounding[33m:[39m [36mfalse[39m })[33m,[39m [90m// Using gemini-2.0-flash[39m
+ [90m    |[39m                                               [31m[1m^[22m[39m
+ [90m 26 |[39m             system[33m:[39m [33mUNIVERSAL_SOLVER_PROMPT[39m[33m,[39m
+ [90m 27 |[39m             prompt[33m:[39m [32m`Selesaikan dan buatkan storyboard video untuk soal berikut secara mendetail sesuai instruksi mutlak Anda:\n\n${rawQuestion}`[39m[33m,[39m
+ [90m 28 |[39m             temperature[33m:[39m [35m0.2[39m[33m,[39m [90m// Low temperature for factual physics/math solving[39m[0m
+Next.js build worker exited with code: 1 and signal: null

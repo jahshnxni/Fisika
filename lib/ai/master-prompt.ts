@@ -98,6 +98,30 @@ export const COURSE_BUILDER_PROMPT = SINGLE_LESSON_GENERATOR_PROMPT;
 export const QUESTIONS_ONLY_BUILDER_PROMPT = SINGLE_LESSON_GENERATOR_PROMPT;
 export const LESSON_FORMAT_PROMPT = `${AI_IDENTITY} Buat materi pembelajaran mendalam dan informatif.`;
 
+/**
+ * Step 3: Extract questions only (Phase 8 - Unlimited Questions)
+ * Used to bypass token limits by only extracting the raw question text.
+ * The actual solving and video storyboard generation will be streamed per question on the client.
+ */
+export const QUESTION_EXTRACTOR_PROMPT = `Berdasarkan isi dokumen berikut, ekstrak SEMUA soal yang ada.
+Jangan selesaikan soalnya. Jangan buat storyboard. HANYA salin teks soal utuh satu per satu.
+Jika ada 40 soal, maka harus ada 40 item dalam array 'lessons'.
+
+KEMBALIKAN JSON INI (tanpa backtick, tanpa markdown):
+{
+  "main_topic": "Judul Topik Utama dari PDF",
+  "ui_config": { "theme": "science", "layout": "practice-focused" },
+  "concept_graph": { "subtopics": [], "concepts": [], "formulas": [], "prerequisites": [] },
+  "lessons": [
+    {
+      "title": "Nomor atau Teks Singkat (Cth: Soal 1)",
+      "contentMdx": "Teks soal utuh, persis seperti di PDF. Termasuk angka dan kondisinya.",
+      "scaffoldedExamples": [],
+      "pdfWalkthrough": ""
+    }
+  ]
+}`;
+
 // ─── OMNITUTOR OS — Full Interactive Chat Persona ────────────────────────────
 export const TUTOR_CHAT_PROMPT = `${AI_IDENTITY}
 
