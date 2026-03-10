@@ -92,29 +92,23 @@ export async function POST(
 
         const systemPrompt = docType === "questions_only" ? QUESTIONS_ONLY_BUILDER_PROMPT : COURSE_BUILDER_PROMPT;
 
-        let userPrompt = "";
-        if (docType === "questions_only") {
-            const sample = questions.slice(0, 8).join("\n\n---\n\n");
-            userPrompt = `Ini adalah kumpulan soal dari dokumen "${space.title}".
+        let userPrompt = `Dokumen: "${space.title}"
 Mata pelajaran: ${subject || "tidak diketahui"}
-Total soal dalam PDF: ~${questions.length}
+Jenis: Dokumen Campuran / Soal Ujian (WAJIB DIBAHAS SEMUA)
+Total Estimasi Soal Terdeteksi: ~${questions.length}
 
-Soal-soal representatif (8 dari ${questions.length}):
+Konten Lengkap PDF:
 
-${sample}
+==================================================
+${fullText}
+==================================================
 
-Bangun kursus lengkap dengan materi prasyarat per topik, latihan bertingkat, dan pembahasan soal.`;
-        } else {
-            userPrompt = `Dokumen: "${space.title}"
-Mata pelajaran: ${subject || "tidak diketahui"}
-Jenis: ${docType === "theory" ? "Materi teori" : "Campuran teori & soal"}
-
-Konten:
-
-${fullText.substring(0, 5500)}
-
-Bangun kursus pembelajaran yang lengkap dari konten ini.`;
-        }
+INSTRUKSI WAJIB UNTUK AI (UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE):
+1. Baca dan pahami seluruh isi PDF di atas.
+2. Temukan SEMUA soal yang ada dalam teks di atas (jangan ada yang terlewat, jika ada 50 soal maka angkat 50 soal tersebut sebagai 'lessons').
+3. Bangun kursus pembelajaran lengkap di mana SETIAP SOAL dipecah menjadi SATU 'lesson'.
+4. Pastikan 'pdfWalkthrough' untuk setiap lesson mengikuti persis format 6-bagian yang diwajibkan di prompt utama Anda (Analisis Soal, Bagian Penting, Pembahasan Terstruktur, Penjelasan Guru, Video Storyboard, Catatan Visual).
+5. Jangan gunakan placeholder. Selesaikan setiap perhitungan secara nyata.`;
 
         // ─── Step 4: Generate ─────────────────────────────────────────────────
         await setStep(spaceId, "PROCESSING", "GENERATING", 55);

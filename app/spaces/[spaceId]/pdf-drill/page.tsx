@@ -83,7 +83,11 @@ export default async function SpacePdfDrillPage({
                                 {/* Video Component for the Storyboard */}
                                 <div className="mt-8 pt-8 border-t border-white/10">
                                     <h3 className="text-lg font-bold text-white mb-4">Video Pembahasan Interaktif</h3>
-                                    <ConceptVideoPlayer courseId={spaceId} topic={lesson.title} />
+                                    <ConceptVideoPlayer
+                                        courseId={spaceId}
+                                        topic={lesson.title}
+                                        customStoryboardText={lesson.pdfWalkthrough}
+                                    />
                                 </div>
                             </div>
                         );
