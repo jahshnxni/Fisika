@@ -1,8 +1,8 @@
-import { TUTOR_CHAT_PROMPT } from "../master-prompt";
+import { UNIVERSAL_TUTOR_PROMPT } from "./universal-tutor";
 
 /**
  * tutor-system.ts
- * OMNITUTOR OS identity + mastery-based interaction protocol.
+ * UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE identity + multimodal capabilities.
  * Used by: /api/ai/chat (streamText system prompt)
  */
-export const tutorSystemPrompt = TUTOR_CHAT_PROMPT;
+export const tutorSystemPrompt = UNIVERSAL_TUTOR_PROMPT;
