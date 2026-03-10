@@ -95,11 +95,31 @@ export async function POST(req: NextRequest) {
         } catch { }
 
         const modeKey = (chatSession.mode || mode) as "TUTOR" | "QA" | "PRACTICE";
-        const systemPrompt = modeKey === "TUTOR"
+        let systemPrompt = modeKey === "TUTOR"
             ? buildTutorPrompt(topicKnowledge, learningProfile)
             : modeKey === "PRACTICE"
                 ? buildPracticePrompt(topicKnowledge, learningProfile)
                 : buildQAPrompt(topicKnowledge, learningProfile);
+
+        // ── Inject PDF Context if courseId exists ─────────────────────────────
+        if (courseId) {
+            try {
+                const course = await prisma.courseSpace.findUnique({
+                    where: { id: courseId },
+                    select: { pdfText: true }
+                });
+                if (course?.pdfText) {
+                    systemPrompt += `\n\n==================================================\n` +
+                        `DOKUMEN PDF SUMBER UNTUK DISKUSI INI:\n` +
+                        `Berikut adalah teks lengkap dari PDF materi/soal yang sedang kita bahas:\n` +
+                        `---\n${course.pdfText}\n---\n` +
+                        `INSTRUKSI WAJIB: Ingat peran Anda sebagai UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE. ` +
+                        `Jawab SEMUA soal yang ada di teks atas. Jika ada 50 soal, bahas 50 soal berurutan dengan format 6-bagian yang diwajibkan. JANGAN ada yang terlewat.`;
+                }
+            } catch (e) {
+                console.warn("Failed to attach PDF context to system prompt", e);
+            }
+        }
 
         // ── Build message history ─────────────────────────────────────────────
         const historyMessages = existingMessages
