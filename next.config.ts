@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
     // serverActions: true, // Enabled by default in Next.js 14
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {

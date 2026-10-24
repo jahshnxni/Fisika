@@ -214,7 +214,7 @@ export async function* streamAI(
     // 5. If an LLM provided the answer, yield chunks smoothly
     if (responseText) {
         console.log(`[streamAI] ✅ Successfully answered via ${successfulProvider}`);
-        const chunks = responseText.match(/.{1,35}/gs) || [responseText];
+        const chunks = responseText.match(/[\s\S]{1,35}/g) || [responseText];
         for (const chunk of chunks) {
             yield chunk;
             await new Promise(r => setTimeout(r, 12));
@@ -423,7 +423,7 @@ Ketik rumus atau kasus yang ingin dibedah secara tuntas! ✨`;
     }
 
     const smartAnswer = generateSmartResponse(lower);
-    const fallbackChunks = smartAnswer.match(/.{1,35}/gs) || [smartAnswer];
+    const fallbackChunks = smartAnswer.match(/[\s\S]{1,35}/g) || [smartAnswer];
     for (const chunk of fallbackChunks) {
         yield chunk;
         await new Promise(r => setTimeout(r, 12));
