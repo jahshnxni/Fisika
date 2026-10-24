@@ -4,21 +4,10 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { buildTutorPrompt, buildQAPrompt, buildPracticePrompt } from "@/lib/ai/system-prompts";
 import { findTopicKnowledge } from "@/lib/ai/topic-knowledge";
-import { streamText, tool, generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { MODELS } from "@/lib/ai/models";
-import { z } from "zod";
 import {
-    GenerateQuizOutputSchema,
-    UiPatchProposalSchema,
-} from "@/lib/ai/schemas";
-import {
-    updateMasterySignal, recordError, shouldAdvanceLevel,
-    getHintLevel, serializeState, deserializeState, createInitialMasteryState,
+    createInitialMasteryState,
+    deserializeState,
 } from "@/lib/mastery/engine";
-import { findRelevantChunks } from "@/lib/pdf/chunker";
-import { chooseMediaEngine } from "@/lib/media/router";
-import { uiPatchPlanner } from "@/lib/ai/prompts/ui-patch-planner";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -36,16 +25,24 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const {
             messages = [],
-            sessionId, mode = "QA", topic, courseId,
+            message,
+            sessionId,
+            mode = "QA",
+            topic,
+            courseId,
         } = body as {
-            messages: Array<{ role: "user" | "assistant"; content: string }>;
+            messages?: Array<{ role: "user" | "assistant"; content: string }>;
+            message?: string;
             sessionId?: string;
             mode?: "TUTOR" | "QA" | "PRACTICE";
             topic?: string;
             courseId?: string;
         };
 
-        const userMessage = messages[messages.length - 1]?.content || "";
+        const userMessage = (typeof message === "string" && message.trim())
+            ? message.trim()
+            : (messages[messages.length - 1]?.content || "");
+
         if (!userMessage?.trim())
             return Response.json({ error: "Pesan tidak boleh kosong" }, { status: 400 });
 
@@ -64,7 +61,9 @@ export async function POST(req: NextRequest) {
             } else {
                 chatSession = await prisma.chatSession.create({
                     data: {
-                        userId: user.id, mode, topic: topic || null,
+                        userId: user.id,
+                        mode,
+                        topic: topic || null,
                         title: userMessage.substring(0, 60) + (userMessage.length > 60 ? "..." : ""),
                     },
                 });
@@ -72,13 +71,6 @@ export async function POST(req: NextRequest) {
         } catch {
             chatSession = { id: `temp-${Date.now()}`, mode, topic };
         }
-
-        // ── Load mastery state ────────────────────────────────────────────────
-        let masteryState = createInitialMasteryState();
-        try {
-            const profile = await prisma.masteryProfile.findUnique({ where: { userId: user.id } });
-            if (profile) masteryState = deserializeState(profile as any);
-        } catch { }
 
         // ── Save user message ─────────────────────────────────────────────────
         try {
@@ -113,8 +105,7 @@ export async function POST(req: NextRequest) {
                         `DOKUMEN PDF SUMBER UNTUK DISKUSI INI:\n` +
                         `Berikut adalah teks lengkap dari PDF materi/soal yang sedang kita bahas:\n` +
                         `---\n${course.pdfText}\n---\n` +
-                        `INSTRUKSI WAJIB: Ingat peran Anda sebagai UNIVERSAL ACADEMIC VIDEO TUTOR ENGINE. ` +
-                        `Jawab SEMUA soal yang ada di teks atas. Jika ada 50 soal, bahas 50 soal berurutan dengan format 6-bagian yang diwajibkan. JANGAN ada yang terlewat.`;
+                        `INSTRUKSI WAJIB: Jawab soal dan materi secara jelas, komprehensif, dan tepat secara fisis.`;
                 }
             } catch (e) {
                 console.warn("Failed to attach PDF context to system prompt", e);
@@ -131,220 +122,8 @@ export async function POST(req: NextRequest) {
             ? messages
             : [...historyMessages, { role: "user" as const, content: userMessage }];
 
-        // ── Fallback if no OpenAI key ─────────────────────────────────────────
-        if (!process.env.OPENAI_API_KEY) {
-            return legacyStream(systemPrompt, allMessages, chatSession);
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // AI SDK v6 TOOLS — inputSchema (not parameters)
-        // ─────────────────────────────────────────────────────────────────────
-        const tools = {
-
-            // ── 1. getDocumentChunk ─────────────────────────────────────────
-            getDocumentChunk: tool({
-                description: "Ambil chunk teks dari PDF yang relevan dengan pertanyaan user. Pakai ini saat perlu konteks dari konten asli PDF.",
-                inputSchema: z.object({
-                    courseId: z.string().describe("ID cours/space yang berisi PDF"),
-                    query: z.string().describe("Pertanyaan atau topik yang dicari"),
-                    chunkType: z.enum(["any", "heading", "formula", "question", "paragraph"]).default("any"),
-                }),
-                execute: async ({ courseId: cId, query, chunkType }) => {
-                    try {
-                        const chunks = await prisma.documentChunk.findMany({
-                            where: {
-                                courseId: cId || courseId || "",
-                                ...(chunkType !== "any" ? { chunkType } : {}),
-                            },
-                            orderBy: { createdAt: "asc" },
-                            take: 30,
-                        });
-                        if (!chunks.length) return { found: false, chunks: [] };
-                        const textChunks = chunks.map(c => ({
-                            pageFrom: c.pageFrom, pageTo: c.pageTo,
-                            chunkText: c.chunkText, chunkType: c.chunkType,
-                            metadata: JSON.parse(c.metadata || "{}"),
-                        }));
-                        const relevant = findRelevantChunks(textChunks as any, query, 3);
-                        return { found: relevant.length > 0, chunks: relevant };
-                    } catch {
-                        return { found: false, chunks: [], error: "DB unavailable" };
-                    }
-                },
-            }),
-
-            // ── 2. saveMasteryProfile ───────────────────────────────────────
-            saveMasteryProfile: tool({
-                description: "Simpan sinyal mastery user setelah interaksi. Panggil saat user menjawab soal, menyelesaikan latihan, atau menunjukkan pemahaman/kesalahan.",
-                inputSchema: z.object({
-                    subtopic: z.string().describe("Subtopik yang baru dipelajari"),
-                    observation: z.object({
-                        concept: z.number().min(0).max(100).optional(),
-                        logic: z.number().min(0).max(100).optional(),
-                        accuracy: z.number().min(0).max(100).optional(),
-                        independence: z.number().min(0).max(100).optional(),
-                        confidence: z.number().min(0).max(100).optional(),
-                    }),
-                    errorType: z.string().optional().describe("concept/logic/calculation/notation/strategy"),
-                }),
-                execute: async ({ subtopic, observation, errorType }) => {
-                    let newState = updateMasterySignal(masteryState, subtopic, observation);
-                    if (errorType) newState = recordError(newState, errorType, subtopic);
-                    const signal = newState.topicMap[subtopic];
-                    const canAdvance = signal ? shouldAdvanceLevel(signal) : false;
-                    const hintLevel = signal ? getHintLevel(signal) : 3;
-                    try {
-                        const serialized = serializeState(newState);
-                        await prisma.masteryProfile.upsert({
-                            where: { userId: user.id },
-                            create: { userId: user.id, ...serialized },
-                            update: { ...serialized, updatedAt: new Date() },
-                        });
-                        masteryState = newState;
-                    } catch { }
-                    return {
-                        saved: true,
-                        readinessScore: newState.readinessScore,
-                        strengths: newState.strengths,
-                        weaknesses: newState.weaknesses,
-                        canAdvanceLevel: canAdvance,
-                        hintLevel,
-                        recommendation: newState.weaknesses.length > 0
-                            ? `Fokus remedial: ${newState.weaknesses.slice(0, 2).join(", ")}`
-                            : "User siap lanjut ke level berikutnya",
-                    };
-                },
-            }),
-
-            // ── 3. generateQuiz ─────────────────────────────────────────────
-            generateQuiz: tool({
-                description: "Buat 1-3 soal latihan adaptif berdasarkan topik dan level mastery user saat ini.",
-                inputSchema: z.object({
-                    topic: z.string().describe("Topik atau subtopik untuk soal"),
-                    level: z.enum(["EASY", "MEDIUM", "HARD", "EXTREME"]),
-                    count: z.number().min(1).max(3).default(2),
-                    focus: z.enum(["concept", "calculation", "application", "analysis"]).default("concept"),
-                }),
-                execute: async ({ topic: qTopic, level, count, focus }) => {
-                    try {
-                        const { object } = await generateObject({
-                            model: openai(MODELS.text),
-                            schema: GenerateQuizOutputSchema,
-                            prompt: `Buat ${count} soal ${level} tentang "${qTopic}" dengan fokus "${focus}". Setiap soal: 4 pilihan, 1 benar, penjelasan per opsi (errorDiagnosis), 3 hint bertingkat. Bahasa Indonesia.`,
-                        });
-                        return { success: true, quiz: object };
-                    } catch (e: any) {
-                        return { success: false, error: e.message, quiz: null };
-                    }
-                },
-            }),
-
-            // ── 4. proposeMedia ─────────────────────────────────────────────
-            proposeMedia: tool({
-                description: "Putuskan apakah perlu membuat gambar atau video untuk konteks saat ini.",
-                inputSchema: z.object({
-                    topic: z.string(),
-                    concept: z.string().describe("Konsep yang perlu divisualisasikan"),
-                    formulaDensity: z.number().min(0).max(1).default(0.3),
-                    pedagogicalNeed: z.enum(["concept_visualization", "step_by_step", "comparison", "formula_derivation"]),
-                }),
-                execute: async ({ topic: mTopic, concept, formulaDensity, pedagogicalNeed }) => {
-                    const needsVideo = pedagogicalNeed === "step_by_step" || pedagogicalNeed === "formula_derivation";
-                    const engine = chooseMediaEngine({
-                        outputType: needsVideo ? "video" : "image",
-                        formulaDensity,
-                        needsPreciseMathTypesetting: formulaDensity > 0.6,
-                        needsCinematicClip: false,
-                    });
-                    if (!needsVideo) {
-                        return {
-                            shouldGenerate: true,
-                            outputType: "image",
-                            engine: "gpt-image",
-                            pedagogicalReason: `Konsep "${concept}" butuh visualisasi`,
-                            topic: mTopic,
-                            imageBrief: {
-                                imageType: "concept_card",
-                                topic: mTopic,
-                                title: concept,
-                                keyPoints: [],
-                                style: "dark_premium",
-                                prompt: `Educational ${pedagogicalNeed} diagram about "${concept}" in "${mTopic}". Dark premium educational style.`,
-                            },
-                        };
-                    }
-                    return {
-                        shouldGenerate: true,
-                        outputType: "video",
-                        engine,
-                        pedagogicalReason: `Konsep "${concept}" butuh video step-by-step (${engine})`,
-                        topic: mTopic,
-                    };
-                },
-            }),
-
-            // ── 5. proposeUiPatch ─────────────────────────────────────────────
-            proposeUiPatch: tool({
-                description: "Usulkan perubahan UI/layout belajar jika ada friction. JANGAN langsung ubah apapun — hanya buat proposal yang akan di-review manusia.",
-                inputSchema: z.object({
-                    area: z.enum(["chat", "lesson", "media-panel", "quiz-panel", "dashboard"]),
-                    frictionDescription: z.string().describe("Deskripsi masalah UX yang terdeteksi"),
-                    sessionContext: z.string().optional(),
-                }),
-                execute: async ({ area, frictionDescription, sessionContext }) => {
-                    try {
-                        const { object } = await generateObject({
-                            model: openai(MODELS.reasoning),
-                            schema: UiPatchProposalSchema,
-                            system: uiPatchPlanner,
-                            prompt: JSON.stringify({ area, frictionDescription, sessionContext }),
-                        });
-                        if (courseId) {
-                            try {
-                                await prisma.uiPatchProposal.create({
-                                    data: {
-                                        courseId,
-                                        area: object.area,
-                                        diagnosis: object.diagnosis,
-                                        goal: object.goal,
-                                        patchSummary: object.patchSummary,
-                                        implementationPlan: JSON.stringify(object.implementationPlan),
-                                        pedagogicalReason: object.pedagogicalReason,
-                                        riskLevel: object.riskLevel,
-                                        rollbackPlan: object.rollbackPlan,
-                                        successMetrics: JSON.stringify(object.successMetrics),
-                                        status: "proposed",
-                                    },
-                                });
-                            } catch { }
-                        }
-                        return { proposed: true, proposal: object };
-                    } catch (e: any) {
-                        return { proposed: false, error: e.message };
-                    }
-                },
-            }),
-        };
-
-        // ── Stream ────────────────────────────────────────────────────────────
-        const result = streamText({
-            model: openai(MODELS.text),
-            system: systemPrompt,
-            messages: allMessages,
-            tools,
-
-            temperature: 0.7,
-            onFinish: async ({ text }) => {
-                try {
-                    await prisma.chatMessage.create({
-                        data: { sessionId: chatSession.id, role: "assistant", content: text },
-                    });
-                } catch { }
-            },
-        });
-
-        // AI SDK v6 uses toUIMessageStreamResponse()
-        return result.toUIMessageStreamResponse();
+        // ── Stream via legacyStream (Gemini / Groq / Physica Knowledge Engine)
+        return legacyStream(systemPrompt, allMessages, chatSession);
 
     } catch (error: any) {
         console.error("AI Chat error:", error);
@@ -352,7 +131,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// ─── Legacy Gemini/Groq fallback (when OPENAI_API_KEY not set) ────────────────
+// ─── Legacy Gemini/Groq/Physica Engine streaming ──────────────────────────────
 async function legacyStream(
     systemPrompt: string,
     messages: Array<{ role: "user" | "assistant"; content: string }>,
@@ -370,7 +149,8 @@ async function legacyStream(
                     fullResponse += text;
                     controller.enqueue(sseEncode({ text, sessionId: chatSession.id }));
                 }
-            } catch {
+            } catch (err: any) {
+                console.error("StreamAI error:", err);
                 controller.enqueue(sseEncode({ text: "\n\n⚠️ Streaming error.", sessionId: chatSession.id }));
             }
             if (fullResponse) {

@@ -1,11 +1,12 @@
 import fs from 'fs';
 import { UNITS } from './prisma/seed/units';
 import { SKILLS } from './prisma/seed/skills';
-import { LESSONS_FLUIDA_STATIS } from './prisma/seed/lessons-unit1';
-import { LESSONS_FLUIDA_DINAMIS } from './prisma/seed/lessons-unit2';
-import { LESSONS_GELOMBANG } from './prisma/seed/lessons-unit3';
-import { LESSONS_SUHU_KALOR } from './prisma/seed/lessons-unit4';
-import { LESSONS_TERMODINAMIKA } from './prisma/seed/lessons-unit5';
+import { LESSONS_UNIT1 } from './prisma/seed/lessons-unit1';
+import { LESSONS_UNIT2 } from './prisma/seed/lessons-unit2';
+import { LESSONS_UNIT3 } from './prisma/seed/lessons-unit3';
+import { LESSONS_UNIT4 } from './prisma/seed/lessons-unit4';
+import { LESSONS_UNIT5 } from './prisma/seed/lessons-unit5';
+import { LESSONS_UNIT6 } from './prisma/seed/lessons-unit6';
 import { generateAllQuestions } from './prisma/seed/questions';
 
 const escapeString = (str: string | undefined | null) => {
@@ -14,11 +15,12 @@ const escapeString = (str: string | undefined | null) => {
 };
 
 const ALL_LESSONS = [
-    ...LESSONS_FLUIDA_STATIS,
-    ...LESSONS_FLUIDA_DINAMIS,
-    ...LESSONS_GELOMBANG,
-    ...LESSONS_SUHU_KALOR,
-    ...LESSONS_TERMODINAMIKA,
+    ...LESSONS_UNIT1,
+    ...LESSONS_UNIT2,
+    ...LESSONS_UNIT3,
+    ...LESSONS_UNIT4,
+    ...LESSONS_UNIT5,
+    ...LESSONS_UNIT6,
 ];
 
 let sql = '';

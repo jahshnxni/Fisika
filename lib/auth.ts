@@ -10,8 +10,9 @@ export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma) as any,
     providers: [
         GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+            clientId: process.env.GOOGLE_CLIENT_ID || "GOOGLE_CLIENT_ID_PLACEHOLDER",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "GOOGLE_CLIENT_SECRET_PLACEHOLDER",
+            allowDangerousEmailAccountLinking: true,
         }),
         CredentialsProvider({
             name: "Credentials",
@@ -24,18 +25,47 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Email dan password wajib diisi");
                 }
 
+                // Demo / Quick Test User handler
+                if (credentials.email === "demo@fisika.edu" && credentials.password === "demo123") {
+                    let demoUser = await prisma.user.findUnique({ where: { email: "demo@fisika.edu" } });
+                    if (!demoUser) {
+                        const hashedPassword = await bcrypt.hash("demo123", 10);
+                        demoUser = await prisma.user.create({
+                            data: {
+                                name: "Siswa Unggul TKA",
+                                email: "demo@fisika.edu",
+                                password: hashedPassword,
+                                isVerified: true,
+                                xp: 250,
+                                hearts: 5,
+                                coins: 150,
+                            }
+                        });
+                    }
+                    return {
+                        id: demoUser.id,
+                        name: demoUser.name,
+                        email: demoUser.email,
+                        image: demoUser.image,
+                    };
+                }
+
                 const user = await prisma.user.findUnique({
                     where: { email: credentials.email }
                 });
 
-                if (!user || !user.password) {
-                    throw new Error("Email tidak ditemukan atau menggunakan login Google");
+                if (!user) {
+                    throw new Error("Akun dengan email ini belum terdaftar");
+                }
+
+                if (!user.password) {
+                    throw new Error("Akun ini terdaftar lewat Google. Silakan masuk dengan Google.");
                 }
 
                 const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
                 if (!isPasswordValid) {
-                    throw new Error("Password salah");
+                    throw new Error("Password yang Anda masukkan salah");
                 }
 
                 return {
@@ -51,45 +81,55 @@ export const authOptions: NextAuthOptions = {
         strategy: "jwt",
     },
     callbacks: {
+        async signIn({ user, account }) {
+            if (account?.provider === "google") {
+                if (!user.email) return false;
+                try {
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email: user.email }
+                    });
+                    if (!existingUser) {
+                        await prisma.user.create({
+                            data: {
+                                email: user.email,
+                                name: user.name || "Siswa Fisika",
+                                image: user.image,
+                                isVerified: true,
+                                hearts: 5,
+                                xp: 100,
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error("signIn callback error:", err);
+                }
+            }
+            return true;
+        },
         async session({ session, token }) {
             if (session.user && token.sub) {
                 // @ts-ignore
                 session.user.id = token.sub;
-
-                // Sync Admin Role from Env
-                if (session.user.email && isSystemAdmin(session.user.email)) {
-                    // Check if DB needs update (optimization: only if not already admin in session, 
-                    // but session doesn't have role yet usually. 
-                    // So we query DB or just update blind? Update blind is safer for "force admin".)
-                    // However, inside session callback we don't want to await DB write every time.
-                    // Better to do it in `jwt` or `signIn`? 
-                    // `jwt` runs less often? No.
-                    // Let's do it in `signIn` event if possible? 
-                    // Actually `session` callback is called often. 
-                    // Let's attach role from token.
-                }
                 // @ts-ignore
-                session.user.role = token.role;
+                session.user.role = token.role || "USER";
             }
-            return session
+            return session;
         },
         async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.sub = user.id;
                 // @ts-ignore
-                token.role = user.role;
-
-                // Check Env Admin
-                if (user.email && isSystemAdmin(user.email)) {
-                    // Update DB if needed
-                    const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-                    if (dbUser && dbUser.role !== 'ADMIN') {
-                        await prisma.user.update({
-                            where: { email: user.email },
-                            data: { role: 'ADMIN', isVerified: true }
-                        });
-                        token.role = 'ADMIN';
+                token.role = user.role || "USER";
+            }
+            if (token.email) {
+                try {
+                    const dbUser = await prisma.user.findUnique({ where: { email: token.email } });
+                    if (dbUser) {
+                        token.sub = dbUser.id;
+                        token.role = dbUser.role;
                     }
+                } catch (e) {
+                    // Fallback gracefully
                 }
             }
             return token;

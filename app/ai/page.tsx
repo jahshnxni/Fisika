@@ -38,11 +38,14 @@ const MODES: { key: Mode; label: string; icon: React.ReactNode; desc: string; co
 ];
 
 const TOPICS = [
-    { slug: "fluida-statis", label: "🌊 Fluida Statis" },
-    { slug: "fluida-dinamis", label: "💨 Fluida Dinamis" },
-    { slug: "gelombang", label: "〰️ Gelombang" },
-    { slug: "suhu-kalor", label: "🌡️ Suhu & Kalor" },
-    { slug: "termodinamika", label: "⚙️ Termodinamika" },
+    { slug: "kinematika", label: "📐 Kinematika (Pengukuran, GLB/GLBB, Parabola)" },
+    { slug: "dinamika", label: "⚖️ Dinamika (Hukum Newton, Impuls, Rotasi)" },
+    { slug: "fluida-statis", label: "🌊 Fluida Statis (Pascal, Archimedes)" },
+    { slug: "fluida-dinamis", label: "💨 Fluida Dinamis (Bernoulli, Aerodinamika)" },
+    { slug: "gelombang", label: "〰️ Gelombang (Bunyi, Pipa PVC, Cahaya)" },
+    { slug: "suhu-kalor", label: "🌡️ Suhu & Kalor (Konduksi, Pemanasan Global)" },
+    { slug: "termodinamika", label: "⚙️ Termodinamika (Mesin Kalor Carnot)" },
+    { slug: "kelistrikan", label: "⚡ Kelistrikan (Listrik Statis & Rangkaian DC)" },
 ];
 
 // ─── Markdown components for chat ───
@@ -151,12 +154,16 @@ function StreamingMessage({ content }: { content: string }) {
 // ─── Welcome Screen ───
 function WelcomeScreen({ onQuickAction }: { onQuickAction: (msg: string) => void }) {
     const suggestions = [
-        { icon: "🌊", text: "Jelaskan tekanan hidrostatis dengan analogi", topic: "fluida-statis" },
-        { icon: "🔧", text: "Bagaimana cara kerja dongkrak hidrolik?", topic: "fluida-statis" },
-        { icon: "⚓", text: "Kenapa kapal baja bisa terapung?", topic: "fluida-statis" },
-        { icon: "💨", text: "Jelaskan persamaan Bernoulli", topic: "fluida-dinamis" },
-        { icon: "🌡️", text: "Apa bedanya kalor dan suhu?", topic: "suhu-kalor" },
-        { icon: "⚙️", text: "Buatkan soal termodinamika level mudah", topic: "termodinamika" },
+        { icon: "📏", text: "Bagaimana cara membaca mikrometer sekrup & tabung manik-manik?", topic: "kinematika" },
+        { icon: "🏀", text: "Mengapa penurunan kecepatan awal membuat lemparan basket gagal masuk?", topic: "kinematika" },
+        { icon: "🩺", text: "Bagaimana sistem hidrolik kursi dokter gigi mengangkat beban 540 N?", topic: "fluida-statis" },
+        { icon: "🚢", text: "Jelaskan prinsip kerja tangki ballast kapal selam menurut Archimedes", topic: "fluida-statis" },
+        { icon: "🦅", text: "Bagaimana sayap burung menghasilkan gaya angkat menurut Bernoulli?", topic: "fluida-dinamis" },
+        { icon: "🥋", text: "Kenapa sentuhan singkat karateka memecahkan batu bata hebel?", topic: "dinamika" },
+        { icon: "🔧", text: "Hitung percepatan sudut kunci pas dengan gaya sudut 37 derajat", topic: "dinamika" },
+        { icon: "🌊", text: "Mengapa terjadi ilusi fatamorgana di tanah lapang panas?", topic: "gelombang" },
+        { icon: "⚙️", text: "Bagaimana kebutuhan kalor mesin berubah saat efisiensi naik 30% ke 50%?", topic: "termodinamika" },
+        { icon: "⚡", text: "Dimana titik medan listrik nol pada elektroda printer toner?", topic: "kelistrikan" },
     ];
 
     return (
@@ -170,20 +177,20 @@ function WelcomeScreen({ onQuickAction }: { onQuickAction: (msg: string) => void
                 </div>
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-2">Halo! Aku Physica AI 🧠</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Halo! Aku Physica AI Tutor 🧠</h2>
             <p className="text-slate-400 text-center max-w-md mb-8">
-                Guru fisika pribadimu yang siap membantu belajar, menjawab pertanyaan, dan melatihmu dengan soal-soal adaptif.
+                Mentor fisika TKA pribadimu. Tanyakan rumus, penurunan konsep, soal-soal HOTS TKA berdiagram, atau minta latihan adaptif.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                 {suggestions.map((s, i) => (
                     <button
                         key={i}
                         onClick={() => onQuickAction(s.text)}
-                        className="text-left p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-700/60 hover:border-violet-500/30 transition-all group"
+                        className="text-left p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-700/60 hover:border-violet-500/40 transition-all group shadow-sm"
                     >
                         <span className="text-lg mr-2">{s.icon}</span>
-                        <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{s.text}</span>
+                        <span className="text-xs text-slate-300 group-hover:text-white transition-colors leading-relaxed">{s.text}</span>
                     </button>
                 ))}
             </div>
@@ -300,6 +307,7 @@ export default function AITutorPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: msg,
+                    messages: [...messages, userMsg],
                     sessionId: activeSessionId,
                     mode,
                     topic,

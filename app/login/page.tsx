@@ -14,6 +14,40 @@ function LoginContent() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const registered = searchParams.get("registered");
+    const errorParam = searchParams.get("error");
+
+    const getErrorMessage = (err: string | null) => {
+        if (!err) return "";
+        if (err === "OAuthSignin" || err === "OAuthCallback") {
+            return "Koneksi Google OAuth belum disetel di .env (GOOGLE_CLIENT_ID / SECRET). Anda dapat menggunakan tombol Demo di bawah.";
+        }
+        if (err === "OAuthAccountNotLinked") {
+            return "Email ini sebelumnya didaftarkan secara manual. Silakan login menggunakan email & password.";
+        }
+        return `Gagal masuk: ${err}`;
+    };
+
+    const handleDemoLogin = async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const res = await signIn("credentials", {
+                redirect: false,
+                email: "demo@fisika.edu",
+                password: "demo123",
+            });
+            if (res?.error) {
+                setError(res.error);
+            } else {
+                router.push("/learn");
+                router.refresh();
+            }
+        } catch {
+            setError("Gagal masuk dengan akun demo");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,13 +74,16 @@ function LoginContent() {
         }
     };
 
-    return (
-        <Card className="w-full max-w-md p-8 bg-cosmic-800/60 backdrop-blur-xl border-cosmic-700 shadow-2xl z-10 relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent to-primary"></div>
+    const displayError = error || getErrorMessage(errorParam);
 
-            <h1 className="text-3xl font-bold text-center mb-8 bg-clip-text text-transparent bg-white">
+    return (
+        <Card className="w-full max-w-md p-8 bg-cosmic-800/80 backdrop-blur-xl border border-cosmic-700 shadow-2xl z-10 relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-primary to-cyan-400"></div>
+
+            <h1 className="text-3xl font-extrabold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
                 Selamat Datang Kembali 👋
             </h1>
+            <p className="text-center text-xs text-slate-400 mb-6">Masuk untuk melanjutkan petualangan Fisika TKA</p>
 
             {registered && (
                 <div className="bg-green-500/20 border border-green-500 text-green-200 p-3 rounded-lg mb-6 text-sm text-center animate-in fade-in slide-in-from-top-4">
@@ -54,11 +91,28 @@ function LoginContent() {
                 </div>
             )}
 
+            {displayError && (
+                <div className="bg-red-500/20 border border-red-500/80 text-red-200 p-3.5 rounded-xl mb-6 text-xs leading-relaxed animate-in shake">
+                    ⚠️ {displayError}
+                </div>
+            )}
+
+            {/* Quick Demo Access Button */}
+            <button
+                type="button"
+                onClick={handleDemoLogin}
+                disabled={loading}
+                className="w-full py-3 px-4 mb-3.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-xl flex items-center justify-center gap-2.5 font-bold transition-all shadow-lg shadow-violet-900/30 active:scale-[0.98] border border-violet-400/30 text-sm"
+            >
+                <span className="text-base">🚀</span>
+                <span>Masuk Cepat (Akun Demo Siswa TKA)</span>
+            </button>
+
             {/* Google Login */}
             <Button
                 type="button"
                 onClick={() => signIn("google", { callbackUrl: "/learn" })}
-                className="w-full py-3 mb-6 bg-white text-slate-800 hover:bg-slate-100 flex items-center justify-center gap-2 font-bold transition-all shadow-md group"
+                className="w-full py-3 mb-6 bg-white text-slate-800 hover:bg-slate-100 flex items-center justify-center gap-2 font-bold transition-all shadow-md group rounded-xl"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
@@ -86,15 +140,9 @@ function LoginContent() {
                     <span className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-cosmic-800/60 px-2 text-slate-400">Atau manual</span>
+                    <span className="bg-cosmic-800/80 px-2 text-slate-400">Atau login email manual</span>
                 </div>
             </div>
-
-            {error && (
-                <div className="bg-red-500/20 border border-red-500 text-red-200 p-3 rounded-lg mb-6 text-sm text-center animate-in shake">
-                    {error}
-                </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>

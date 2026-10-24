@@ -26,29 +26,63 @@ const PVDiagramSim = dynamic(() => import('@/components/simulations/PVDiagramSim
 const CarnotSim = dynamic(() => import('@/components/simulations/CarnotSim'), { ssr: false })
 const GasPistonSim = dynamic(() => import('@/components/simulations/GasPistonSim'), { ssr: false })
 
+// New TKA Realistic Simulations
+const MicrometerVernierSim = dynamic(() => import('@/components/simulations/MicrometerVernierSim'), { ssr: false })
+const RelativeMotionBoatSim = dynamic(() => import('@/components/simulations/RelativeMotionBoatSim'), { ssr: false })
+const MotionGraphRaceSim = dynamic(() => import('@/components/simulations/MotionGraphRaceSim'), { ssr: false })
+const BasketballProjectileSim = dynamic(() => import('@/components/simulations/BasketballProjectileSim'), { ssr: false })
+const FishingBoatForceSim = dynamic(() => import('@/components/simulations/FishingBoatForceSim'), { ssr: false })
+const KarateImpulseSim = dynamic(() => import('@/components/simulations/KarateImpulseSim'), { ssr: false })
+const WrenchTorqueSim = dynamic(() => import('@/components/simulations/WrenchTorqueSim'), { ssr: false })
+const HydraulicDentistChairSim = dynamic(() => import('@/components/simulations/HydraulicDentistChairSim'), { ssr: false })
+const SubmarineBallastSim = dynamic(() => import('@/components/simulations/SubmarineBallastSim'), { ssr: false })
+const BirdWingAerodynamicsSim = dynamic(() => import('@/components/simulations/BirdWingAerodynamicsSim'), { ssr: false })
+const OrganPipeAcousticSim = dynamic(() => import('@/components/simulations/OrganPipeAcousticSim'), { ssr: false })
+const MirageRefractionSim = dynamic(() => import('@/components/simulations/MirageRefractionSim'), { ssr: false })
+const HeatConductionRodSim = dynamic(() => import('@/components/simulations/HeatConductionRodSim'), { ssr: false })
+const GlobalWarmingEnergySim = dynamic(() => import('@/components/simulations/GlobalWarmingEnergySim'), { ssr: false })
+const GasIdealCylinderSim = dynamic(() => import('@/components/simulations/GasIdealCylinderSim'), { ssr: false })
+const CarnotEngineCycleSim = dynamic(() => import('@/components/simulations/CarnotEngineCycleSim'), { ssr: false })
+const ElectrostaticPrinterSim = dynamic(() => import('@/components/simulations/ElectrostaticPrinterSim'), { ssr: false })
+const DCCircuitBillingSim = dynamic(() => import('@/components/simulations/DCCircuitBillingSim'), { ssr: false })
+
 const RealBernoulli = BernoulliSim // alias
+
+const simMap: Record<string, React.ComponentType> = {
+    HydrostaticSim, RealisticHydrostatic, BernoulliSim, RealBernoulli,
+    PascalSim, ArchimedesSim, ContinuitySim, ToricelliSim,
+    WaveSim, SoundSim, LightSim,
+    ThermometerSim, ExpansionSim, HeatTransferSim, PVDiagramSim, CarnotSim, GasPistonSim,
+    // TKA High-Fidelity Simulations
+    MicrometerVernierSim,
+    RelativeMotionBoatSim,
+    MotionGraphRaceSim,
+    BasketballProjectileSim,
+    FishingBoatForceSim,
+    KarateImpulseSim,
+    WrenchTorqueSim,
+    HydraulicDentistChairSim,
+    SubmarineBallastSim,
+    BirdWingAerodynamicsSim,
+    OrganPipeAcousticSim,
+    MirageRefractionSim,
+    HeatConductionRodSim,
+    GlobalWarmingEnergySim,
+    GasIdealCylinderSim,
+    CarnotEngineCycleSim,
+    ElectrostaticPrinterSim,
+    DCCircuitBillingSim,
+}
 
 const components = {
     // Custom component to handle our specific "sim" tags passed from MDX
-    // Usage in MDX: <InteractiveComponent type="RealisticHydrostatic" />
+    // Usage in MDX: <InteractiveComponent type="MicrometerVernierSim" />
     InteractiveComponent: ({ node, ...props }: any) => {
-        const simMap: Record<string, React.ComponentType> = {
-            HydrostaticSim, RealisticHydrostatic, BernoulliSim, RealBernoulli,
-            PascalSim, ArchimedesSim, ContinuitySim, ToricelliSim,
-            WaveSim, SoundSim, LightSim,
-            ThermometerSim, ExpansionSim, HeatTransferSim, PVDiagramSim, CarnotSim, GasPistonSim,
-        }
         const Comp = simMap[props.type]
         if (Comp) return <Comp />
         return <div className="p-4 border border-red-500 text-red-500">Unknown Component: {props.type}</div>
     },
     interactivecomponent: ({ node, ...props }: any) => {
-        const simMap: Record<string, React.ComponentType> = {
-            HydrostaticSim, RealisticHydrostatic, BernoulliSim, RealBernoulli,
-            PascalSim, ArchimedesSim, ContinuitySim, ToricelliSim,
-            WaveSim, SoundSim, LightSim,
-            ThermometerSim, ExpansionSim, HeatTransferSim, PVDiagramSim, CarnotSim, GasPistonSim,
-        }
         const Comp = simMap[props.type]
         if (Comp) return <Comp />
         return <div className="p-4 border border-red-500 text-red-500">Unknown Component: {props.type}</div>
