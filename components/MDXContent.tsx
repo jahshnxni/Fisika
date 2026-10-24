@@ -49,6 +49,10 @@ const DCCircuitBillingSim = dynamic(() => import('@/components/simulations/DCCir
 const ArchimedesThreeStatesVisualizer = dynamic(() => import('@/components/simulations/ArchimedesThreeStatesVisualizer'), { ssr: false })
 const InclinedPlaneSim = dynamic(() => import('@/components/simulations/InclinedPlaneSim'), { ssr: false })
 const PulleySystemSim = dynamic(() => import('@/components/simulations/PulleySystemSim'), { ssr: false })
+const ConnectedBlocksSim = dynamic(() => import('@/components/simulations/ConnectedBlocksSim'), { ssr: false })
+const ElevatorApparentWeightSim = dynamic(() => import('@/components/simulations/ElevatorApparentWeightSim'), { ssr: false })
+const RotationalDynamicsSim = dynamic(() => import('@/components/simulations/RotationalDynamicsSim'), { ssr: false })
+const MagneticLorentzSim = dynamic(() => import('@/components/simulations/MagneticLorentzSim'), { ssr: false })
 const ManimSolutionViewer = dynamic(() => import('@/components/ManimSolutionViewer'), { ssr: false })
 
 const RealBernoulli = BernoulliSim // alias
@@ -77,10 +81,14 @@ const simMap: Record<string, React.ComponentType> = {
     CarnotEngineCycleSim,
     ElectrostaticPrinterSim,
     DCCircuitBillingSim,
-    // Archimedes Three States & Dynamics & Manim
+    // Dynamics, Rotation, Electricity & Manim
     ArchimedesThreeStatesVisualizer,
     InclinedPlaneSim,
     PulleySystemSim,
+    ConnectedBlocksSim,
+    ElevatorApparentWeightSim,
+    RotationalDynamicsSim,
+    MagneticLorentzSim,
     ManimSolutionViewer,
 }
 

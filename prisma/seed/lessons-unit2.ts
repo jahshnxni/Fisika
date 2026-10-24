@@ -28,7 +28,35 @@ $$\\vec{F}_{\\text{aksi}} = -\\vec{F}_{\\text{reaksi}}$$
 
 ---
 
-## 2. Simulasi Interaktif: Bidang Miring Kasar & Diagram Gaya Bebas (FBD)
+## 2. Simulasi Interaktif: 3 Benda Berangkai Diikat Tali (Diagram Gaya Bebas Lengkap)
+
+Tiga balok $A$, $B$, dan $C$ dihubungkan dengan tali tak bermassa di atas lantai horizontal dan ditarik oleh gaya $F$ ke kanan. Setiap benda mengalami gaya normal ($N_i = m_i g$), gaya gesek ($f_i = \\mu N_i$), dan gaya tegangan tali ($T_{AB}, T_{BC}$):
+- **Percepatan Bersama:**
+  $$a = \\frac{F - (f_A + f_B + f_C)}{m_A + m_B + m_C}$$
+- **Tegangan Tali $T_{AB}$ (Tinjau Balok A):**
+  $$T_{AB} - f_A = m_A a \\implies T_{AB} = m_A a + f_A$$
+- **Tegangan Tali $T_{BC}$ (Tinjau Balok A + B):**
+  $$T_{BC} - (f_A + f_B) = (m_A + m_B) a \\implies T_{BC} = (m_A + m_B) a + f_A + f_B$$
+
+<InteractiveComponent type="ConnectedBlocksSim" />
+
+---
+
+## 3. Simulasi Interaktif: Gaya Normal & Berat Semu di Dalam Lift
+
+Perhatikan berat semu penumpang yang berdiri di atas timbangan saat lift bergerak dengan berbagai percepatan:
+- **Lift Diam / Kecepatan Konstan:** $N = mg$ (Berat normal asli)
+- **Lift Naik Dipercepat ($+a$):** $N = m(g + a)$ (Badan tertekan lebih berat, timbangan naik)
+- **Lift Naik Diperlambat ($-a$):** $N = m(g - a)$ (Badan terasa lebih ringan)
+- **Lift Turun Dipercepat ($+a$):** $N = m(g - a)$ (Badan terasa lebih ringan)
+- **Lift Turun Diperlambat ($-a$):** $N = m(g + a)$ (Badan tertekan lebih berat)
+- **Kabel Lift Putus (Jatuh Bebas, $a = g$):** $N = m(g - g) = 0$ (Keadaan tanpa bobot / *weightlessness*)
+
+<InteractiveComponent type="ElevatorApparentWeightSim" />
+
+---
+
+## 4. Simulasi Interaktif: Bidang Miring Kasar & Diagram Gaya Bebas (FBD)
 
 Dinamika benda pada bidang miring melibatkan dekomposisi gaya berat menjadi komponen sejajar ($W_\\parallel = mg\\sin\\theta$) dan tegak lurus ($W_\\perp = mg\\cos\\theta$). Anda dapat menggeser sudut kemiringan $\\theta$, mengubah massa $m$, dan mengaktifkan gaya gesek kinetis/statis:
 
@@ -36,7 +64,7 @@ Dinamika benda pada bidang miring melibatkan dekomposisi gaya berat menjadi komp
 
 ---
 
-## 3. Simulasi Interaktif: Sistem Katrol Atwood Dua Beban
+## 5. Simulasi Interaktif: Sistem Katrol Atwood Dua Beban
 
 Katrol mengubah arah gaya tegangan tali. Pada katrol Atwood licin dengan massa $m_1$ dan $m_2$, percepatan sistem dan tegangan tali dihitung dengan:
 $$a = \\frac{|m_1 - m_2|}{m_1 + m_2}g, \\qquad T = \\frac{2m_1 m_2}{m_1 + m_2}g$$
@@ -45,7 +73,7 @@ $$a = \\frac{|m_1 - m_2|}{m_1 + m_2}g, \\qquad T = \\frac{2m_1 m_2}{m_1 + m_2}g$
 
 ---
 
-## 4. Simulasi Interaktif: Perahu Nelayan & Gaya Arus Laut
+## 6. Simulasi Interaktif: Perahu Nelayan & Gaya Arus Laut
 
 Perhatikan simulasi perahu nelayan bermassa $150\\text{ kg}$ yang berlayar ke utara $6\\text{ m/s}$ lalu terkena dorongan arus laut sebesar $300\\text{ N}$ ke arah timur selama $4\\text{ detik}$:
 
@@ -53,7 +81,7 @@ Perhatikan simulasi perahu nelayan bermassa $150\\text{ kg}$ yang berlayar ke ut
 
 ---
 
-## 5. Pembahasan Animasi Interaktif Ala Manim (MathJax)
+## 7. Pembahasan Animasi Interaktif Ala Manim (MathJax)
 
 Saksikan visualisasi penurunan rumus langkah-demi-langkah dengan animasi vektor Manim:
 
@@ -61,7 +89,7 @@ Saksikan visualisasi penurunan rumus langkah-demi-langkah dengan animasi vektor 
 
 ---
 
-## 6. Contoh Soal 3 Level Terstruktur
+## 8. Contoh Soal 3 Level Terstruktur
 
 ### 🟢 Level 1: Dasar
 **Soal:** Sebuah balok kayu bermassa $5\\text{ kg}$ berada di atas lantai licin ditarik dengan gaya mendatar $20\\text{ N}$. Hitung percepatan balok!
@@ -208,7 +236,20 @@ Simulasikan kunci pas mekanik sepanjang $20\\text{ cm}$ yang ditarik gaya $15\\t
 
 ---
 
-## 3. Contoh Soal 3 Level Terstruktur
+## 3. Simulasi Interaktif: Balapan Benda Menggelinding Tanpa Slip (Dinamika Rotasi)
+
+Ketika berbagai bentuk benda geometris (bola pejal, silinder pejal, bola berongga, dan cincin tipis) dilepaskan bersamaan pada bidang miring tanpa slip, percepatan liniernya ditentukan oleh faktor inersia $k$ ($I = k m R^2$):
+$$a = \\frac{g \\sin\\theta}{1 + k}$$
+- **Bola Pejal ($k = 0{,}4$):** $a = \\frac{5}{7} g \\sin\\theta \\approx 0{,}714\\, g\\sin\\theta$ (Selalu Paling Cepat / Pemenang!)
+- **Silinder Pejal ($k = 0{,}5$):** $a = \\frac{2}{3} g \\sin\\theta \\approx 0{,}667\\, g\\sin\\theta$
+- **Bola Berongga ($k = 0{,}67$):** $a = \\frac{3}{5} g \\sin\\theta = 0{,}600\\, g\\sin\\theta$
+- **Cincin Tipis ($k = 1{,}0$):** $a = \\frac{1}{2} g \\sin\\theta = 0{,}500\\, g\\sin\\theta$ (Paling Lambat)
+
+<InteractiveComponent type="RotationalDynamicsSim" />
+
+---
+
+## 4. Contoh Soal 3 Level Terstruktur
 
 ### 🟢 Level 1: Dasar
 **Soal:** Sebuah pintu ditarik tegak lurus ($\\theta = 90^\\circ$) dengan gaya $20\\text{ N}$ pada jarak $0{,}8\\text{ m}$ dari engsel. Berapakah torsi yang dihasilkan?

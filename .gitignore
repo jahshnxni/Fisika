@@ -44,3 +44,6 @@ next-env.d.ts
 tools/
 *.log
 ts_errors.txt
+*.db
+*.db*
+

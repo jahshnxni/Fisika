@@ -9,7 +9,7 @@ interface SolutionStep {
     description: string;
     formulaLatex: string;
     subNotes: string[];
-    diagramType: "inclined-plane" | "archimedes" | "atwood" | "projectile";
+    diagramType: "inclined-plane" | "archimedes" | "atwood" | "connected-blocks" | "elevator" | "rotational" | "lorentz";
     highlightVariables: Record<string, string>;
 }
 
@@ -22,6 +22,224 @@ interface ProblemCase {
 }
 
 const PROBLEMS: ProblemCase[] = [
+    {
+        id: "connected-blocks",
+        title: "Dinamika 3 Benda Berangkai Diikat Tali (Soal TKA)",
+        topic: "Dinamika Gerak Lurus & Hukum Newton",
+        problemStatement:
+            "Tiga balok A (m_A = 2 kg), B (m_B = 3 kg), dan C (m_C = 5 kg) dihubungkan tali tak bermassa di atas lantai kasar dengan koefisien gesek \u03bc = 0.2. Balok C ditarik gaya mendatar F = 60 N ke arah kanan. Tentukan percepatan sistem, gaya normal dan gaya gesek masing-masing balok, serta tegangan tali T_AB dan T_BC! (g = 10 m/s\u00b2)",
+        steps: [
+            {
+                stepNumber: 1,
+                title: "1. Gaya Normal & Gaya Gesek Masing-Masing Balok",
+                description:
+                    "Karena tidak ada gerak vertikal, gaya normal tiap benda mengimbangi gaya beratnya.",
+                formulaLatex: "N_A = m_A g = 2 \\times 10 = 20\\text{ N} \\implies f_A = \\mu N_A = 0.2 \\times 20 = 4\\text{ N} \\\\[4pt] N_B = m_B g = 3 \\times 10 = 30\\text{ N} \\implies f_B = \\mu N_B = 0.2 \\times 30 = 6\\text{ N} \\\\[4pt] N_C = m_C g = 5 \\times 10 = 50\\text{ N} \\implies f_C = \\mu N_C = 0.2 \\times 50 = 10\\text{ N} \\\\[4pt] \\Sigma f = f_A + f_B + f_C = 4 + 6 + 10 = 20\\text{ N}",
+                subNotes: [
+                    "Total massa sistem: m_total = 2 + 3 + 5 = 10 kg",
+                    "Total gaya gesekan yang menghambat sistem adalah 20 N ke arah kiri",
+                ],
+                diagramType: "connected-blocks",
+                highlightVariables: { "N_A": "20 N", "N_B": "30 N", "N_C": "50 N", "\u03a3f": "20 N" },
+            },
+            {
+                stepNumber: 2,
+                title: "2. Menghitung Percepatan Sistem Bersama (a)",
+                description:
+                    "Terapkan Hukum II Newton pada sistem keseluruhan: \u03a3F_total = m_total \u00d7 a.",
+                formulaLatex: "\\Sigma F = F - \\Sigma f = m_{\\text{total}} \\times a \\\\[6pt] a = \\frac{F - \\Sigma f}{m_A + m_B + m_C} = \\frac{60 - 20}{2 + 3 + 5} = \\frac{40}{10} = \\mathbf{4\\text{ m/s}^2}",
+                subNotes: [
+                    "Gaya penarik netto: 60 N - 20 N = 40 N",
+                    "Ketiga balok bergerak bersama ke kanan dengan percepatan a = 4 m/s\u00b2",
+                ],
+                diagramType: "connected-blocks",
+                highlightVariables: { "F_net": "40 N", "a": "4 m/s\u00b2" },
+            },
+            {
+                stepNumber: 3,
+                title: "3. Menentukan Tegangan Tali T_AB",
+                description:
+                    "Tinjau Free Body Diagram (FBD) balok A: ditarik ke kanan oleh T_AB dan dihambat oleh gesekan f_A.",
+                formulaLatex: "\\Sigma F_A = m_A \\times a \\implies T_{AB} - f_A = m_A \\times a \\\\[6pt] T_{AB} = m_A a + f_A = (2 \\times 4) + 4 = 8 + 4 = \\mathbf{12\\text{ N}}",
+                subNotes: [
+                    "Tali AB hanya bertugas menarik balok A bermassa 2 kg melawan gesekan f_A",
+                    "Tegangan tali T_AB terbukti sebesar 12 N",
+                ],
+                diagramType: "connected-blocks",
+                highlightVariables: { "T_AB": "12 N" },
+            },
+            {
+                stepNumber: 4,
+                title: "4. Menentukan Tegangan Tali T_BC & Verifikasi",
+                description:
+                    "Tinjau FBD gabungan balok A dan B yang ditarik oleh T_BC.",
+                formulaLatex: "T_{BC} = (m_A + m_B) a + (f_A + f_B) = (2 + 3)(4) + (4 + 6) = 20 + 10 = \\mathbf{30\\text{ N}} \\\\[6pt] \\text{Verifikasi pada Balok C}: \\quad F - T_{BC} - f_C = m_C a \\\\[4pt] 60 - 30 - 10 = 5 \\times 4 \\implies 20 = 20 \\; (\\checkmark)",
+                subNotes: [
+                    "Tali BC menarik balok A + B dengan total massa 5 kg",
+                    "Kedua metode peninjauan menghasilkan nilai identik T_BC = 30 N",
+                ],
+                diagramType: "connected-blocks",
+                highlightVariables: { "T_BC": "30 N", "Verifikasi": "Cocok 100%" },
+            },
+        ],
+    },
+    {
+        id: "elevator",
+        title: "Dinamika Berat Semu di Dalam Lift (Timbangan)",
+        topic: "Gaya Normal & Kerangka Non-Inersia",
+        problemStatement:
+            "Seseorang bermassa m = 60 kg berdiri di atas timbangan badan di dalam lift. Tentukan gaya normal N (angka yang ditunjukkan timbangan) saat: (1) Lift diam, (2) Lift bergerak naik dipercepat a = 3 m/s\u00b2, (3) Lift turun dipercepat a = 3 m/s\u00b2, dan (4) Kabel lift putus / jatuh bebas! (g = 10 m/s\u00b2)",
+        steps: [
+            {
+                stepNumber: 1,
+                title: "1. Kondisi Lift Diam atau GLB (a = 0)",
+                description:
+                    "Saat lift diam atau bergerak dengan kecepatan tetap, sistem berada dalam kesetimbangan statis.",
+                formulaLatex: "\\Sigma F_y = 0 \\implies N - W = 0 \\\\[6pt] N = W = m \\times g = 60 \\times 10 = \\mathbf{600\\text{ N}} \\quad (\\text{Skala: } 60\\text{ kg})",
+                subNotes: [
+                    "Gaya normal sama persis dengan berat tubuh asli",
+                    "Tidak ada efek inersia tambahan yang bekerja pada tubuh",
+                ],
+                diagramType: "elevator",
+                highlightVariables: { "a": "0 m/s\u00b2", "N": "600 N", "Massa Skala": "60 kg" },
+            },
+            {
+                stepNumber: 2,
+                title: "2. Lift Bergerak Naik Dipercepat (a = 3 m/s\u00b2)",
+                description:
+                    "Lantai lift dan timbangan harus mendorong ke atas lebih kuat untuk menghasilkan percepatan ke atas.",
+                formulaLatex: "\\Sigma F_y = m \\times a \\implies N - mg = m \\times a \\\\[6pt] N = m(g + a) = 60 \\times (10 + 3) = 60 \\times 13 = \\mathbf{780\\text{ N}} \\quad (\\text{Skala: } 78\\text{ kg})",
+                subNotes: [
+                    "Tubuh tertekan lebih berat ke lantai lift",
+                    "Timbangan menunjukkan pertambahan berat semu sebesar 180 N (+30%)",
+                ],
+                diagramType: "elevator",
+                highlightVariables: { "a": "+3 m/s\u00b2", "N": "780 N", "Massa Skala": "78 kg" },
+            },
+            {
+                stepNumber: 3,
+                title: "3. Lift Bergerak Turun Dipercepat (a = 3 m/s\u00b2)",
+                description:
+                    "Lantai lift bergerak meluncur turun menjauhi kaki penumpang, mengurangi tekanan kontak.",
+                formulaLatex: "mg - N = m \\times a \\implies N = m(g - a) \\\\[6pt] N = 60 \\times (10 - 3) = 60 \\times 7 = \\mathbf{420\\text{ N}} \\quad (\\text{Skala: } 42\\text{ kg})",
+                subNotes: [
+                    "Penumpang merasa melayang lebih ringan",
+                    "Timbangan menunjukkan pengurangan gaya kontak sebesar 180 N",
+                ],
+                diagramType: "elevator",
+                highlightVariables: { "a": "-3 m/s\u00b2", "N": "420 N", "Massa Skala": "42 kg" },
+            },
+            {
+                stepNumber: 4,
+                title: "4. Kabel Lift Putus / Jatuh Bebas (a = g)",
+                description:
+                    "Lift dan penumpang sama-sama jatuh bebas dengan percepatan gravitasi g yang identik.",
+                formulaLatex: "N = m(g - g) = 60 \\times 0 = \\mathbf{0\\text{ N}} \\quad (\\text{Keadaan Tanpa Bobot / Weightlessness})",
+                subNotes: [
+                    "Kaki terlepas dari lantai timbangan (melayang di dalam kabin)",
+                    "Gaya kontak normal N = 0, timbangan membaca 0 kg",
+                ],
+                diagramType: "elevator",
+                highlightVariables: { "a": "g (10 m/s\u00b2)", "N": "0 N", "Status": "Melayang" },
+            },
+        ],
+    },
+    {
+        id: "rotational",
+        title: "Dinamika Rotasi: Silinder vs Bola Menggelinding",
+        topic: "Momen Inersia & Gerak Menggelinding Murni",
+        problemStatement:
+            "Sebuah bola pejal (I = 2/5 mR\u00b2) dan silinder pejal (I = 1/2 mR\u00b2) dilepas bersamaan dari puncak bidang miring \u03b8 = 30\u00b0 tanpa slip. Tentukan perbandingan percepatan linier keduanya dan buktikan benda manakah yang mencapai dasar lebih dulu! (g = 10 m/s\u00b2)",
+        steps: [
+            {
+                stepNumber: 1,
+                title: "1. Penurunan Rumus Umum Menggelinding Tanpa Slip",
+                description:
+                    "Tinjau translasi \u03a3F = m \u00d7 a dan rotasi \u03a3\u03c4 = I \u00d7 \u03b1 dengan syarat menggelinding murni a = \u03b1 \u00d7 R.",
+                formulaLatex: "mg\\sin\\theta - f_s = m a, \\quad f_s \\cdot R = I \\alpha = (k m R^2) \\left(\\frac{a}{R}\\right) \\implies f_s = k m a \\\\[6pt] mg\\sin\\theta - kma = ma \\implies \\mathbf{a = \\frac{g \\sin\\theta}{1 + k}}",
+                subNotes: [
+                    "k adalah koefisien momen inersia (I = k \u00d7 mR\u00b2)",
+                    "Semakin kecil nilai k, semakin besar percepatan linier benda!",
+                ],
+                diagramType: "rotational",
+                highlightVariables: { "Rumus": "a = g sin\u03b8 / (1 + k)" },
+            },
+            {
+                stepNumber: 2,
+                title: "2. Perhitungan Percepatan Bola Pejal",
+                description:
+                    "Bola pejal memiliki konstanta inersia k = 2/5 = 0.4.",
+                formulaLatex: "a_{\\text{bola}} = \\frac{g \\sin 30^\\circ}{1 + \\frac{2}{5}} = \\frac{10 \\times 0.5}{\\frac{7}{5}} = \\frac{5}{\\frac{7}{5}} = \\frac{25}{7} \\approx \\mathbf{3.57\\text{ m/s}^2}",
+                subNotes: [
+                    "a_bola = (5/7) g sin 30\u00b0 \u2248 0.714 g sin 30\u00b0",
+                    "Bola pejal mengalokasikan fraksi energi potensial lebih besar ke translasi",
+                ],
+                diagramType: "rotational",
+                highlightVariables: { "k_bola": "0.4", "a_bola": "3.57 m/s\u00b2" },
+            },
+            {
+                stepNumber: 3,
+                title: "3. Perhitungan Percepatan Silinder Pejal",
+                description:
+                    "Silinder pejal memiliki konstanta inersia k = 1/2 = 0.5.",
+                formulaLatex: "a_{\\text{silinder}} = \\frac{g \\sin 30^\\circ}{1 + \\frac{1}{2}} = \\frac{5}{\\frac{3}{2}} = \\frac{10}{3} \\approx \\mathbf{3.33\\text{ m/s}^2}",
+                subNotes: [
+                    "a_silinder = (2/3) g sin 30\u00b0 \u2248 0.667 g sin 30\u00b0",
+                    "a_bola (3.57 m/s\u00b2) > a_silinder (3.33 m/s\u00b2)",
+                ],
+                diagramType: "rotational",
+                highlightVariables: { "k_silinder": "0.5", "a_silinder": "3.33 m/s\u00b2" },
+            },
+            {
+                stepNumber: 4,
+                title: "4. Rasio Percepatan & Kesimpulan Pemenang",
+                description:
+                    "Bandingkan waktu tempuh t = \u221a(2s / a) untuk menentukan pemenang balapan.",
+                formulaLatex: "\\frac{a_{\\text{bola}}}{a_{\\text{silinder}}} = \\frac{25/7}{10/3} = \\frac{25 \\times 3}{7 \\times 10} = \\frac{15}{14} \\approx 1.07 \\\\[6pt] t = \\sqrt{\\frac{2s}{a}} \\implies t_{\\text{bola}} < t_{\\text{silinder}} \\implies \\mathbf{\\text{BOLA PEJAL TIBA LEBIH DULU}}",
+                subNotes: [
+                    "Urutan tercepat ke terlambat: Bola Pejal > Silinder Pejal > Bola Berongga > Cincin",
+                    "Massa dan jari-jari tidak mempengaruhi urutan, hanya bentuk geometrinya!",
+                ],
+                diagramType: "rotational",
+                highlightVariables: { "Juara": "Bola Pejal", "Rasio": "15 : 14" },
+            },
+        ],
+    },
+    {
+        id: "lorentz",
+        title: "Gaya Magnet Lorentz & Siklotron Melingkar",
+        topic: "Kemagnetan & Gaya Lorentz",
+        problemStatement:
+            "Sebuah partikel bermuatan q = 3.2 \u00d7 10\u207b\u00b9\u2079 C bermassa m = 6.4 \u00d7 10\u207b\u00b2\u2077 kg melaju dengan kecepatan v = 5 \u00d7 10\u2075 m/s tegak lurus masuk ke dalam medan magnet seragam B = 2 Tesla. Tentukan besar gaya Lorentz dan jari-jari lintasan lingkaran partikel!",
+        steps: [
+            {
+                stepNumber: 1,
+                title: "1. Menghitung Besar Gaya Magnet Lorentz (F_L)",
+                description:
+                    "Karena lintasan tegak lurus arah medan magnet (\u03b1 = 90\u00b0), sin 90\u00b0 = 1.",
+                formulaLatex: "F_L = q \\cdot v \\cdot B \\cdot \\sin 90^\\circ = (3.2 \\times 10^{-19}) \\times (5 \\times 10^5) \\times 2 \\\\[6pt] F_L = 3.2 \\times 10 \\times 10^{-14} = \\mathbf{3.2 \\times 10^{-13}\\text{ N}}",
+                subNotes: [
+                    "Arah gaya Lorentz selalu tegak lurus terhadap vektor kecepatan v",
+                    "Gaya Lorentz tidak melakukan usaha (W = 0), sehingga kelajuan v konstan",
+                ],
+                diagramType: "lorentz",
+                highlightVariables: { "F_L": "3.2 \u00d7 10\u207b\u00b9\u00b3 N", "W_L": "0 Joule" },
+            },
+            {
+                stepNumber: 2,
+                title: "2. Kesetimbangan Gaya Sentripetal & Jari-Jari (R)",
+                description:
+                    "Gaya Lorentz berperan penuh sebagai gaya sentripetal yang membelokkan lintasan partikel menjadi lingkaran sempurna.",
+                formulaLatex: "F_L = F_c \\implies q v B = \\frac{m v^2}{R} \\\\[6pt] R = \\frac{m v}{q B} = \\frac{(6.4 \\times 10^{-27}) \\times (5 \\times 10^5)}{(3.2 \\times 10^{-19}) \\times 2} = \\frac{3.2 \\times 10^{-21}}{6.4 \\times 10^{-19}} = \\mathbf{0.005\\text{ m} = 5\\text{ mm}}",
+                subNotes: [
+                    "Jari-jari orbit berbanding lurus dengan momentum partikel (p = mv)",
+                    "Jari-jari berbanding terbalik dengan kuat medan magnet B",
+                ],
+                diagramType: "lorentz",
+                highlightVariables: { "R": "5 mm", "Bentuk": "Lingkaran" },
+            },
+        ],
+    },
     {
         id: "bidang-miring",
         title: "Dinamika Bidang Miring Kasar",
@@ -473,6 +691,403 @@ export default function ManimSolutionViewer() {
 
             drawManimVector(centerX + r, topY + 90, centerX + r, topY + 55, "#22d3ee", "T = 48 N");
             drawManimVector(centerX + r, topY + 126, centerX + r, topY + 165, "#f97316", "W_2 = 40 N");
+        } else if (step.diagramType === "connected-blocks") {
+            // Replica of User Diagram: 3 Blocks connected by rope on friction floor pulled by F to right
+            const groundY = height - 70;
+            
+            // Ground surface line and hatching
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(20, groundY);
+            ctx.lineTo(width - 20, groundY);
+            ctx.stroke();
+
+            // Ground hatching
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.4)";
+            ctx.lineWidth = 1.5;
+            for (let hx = 25; hx < width - 20; hx += 16) {
+                ctx.beginPath();
+                ctx.moveTo(hx, groundY);
+                ctx.lineTo(hx - 10, groundY + 10);
+                ctx.stroke();
+            }
+
+            // Blocks A, B, C positions
+            const blockA = { x: 70, y: groundY - 60, w: 60, h: 60, name: "A", mass: "2 kg", color: "#38bdf8" };
+            const blockB = { x: 210, y: groundY - 60, w: 65, h: 60, name: "B", mass: "3 kg", color: "#60a5fa" };
+            const blockC = { x: 360, y: groundY - 60, w: 70, h: 60, name: "C", mass: "5 kg", color: "#818cf8" };
+            const blocks = [blockA, blockB, blockC];
+
+            // Ropes with tension markers
+            const drawRope = (b1: typeof blockA, b2: typeof blockA, tensionLabel: string) => {
+                const y = groundY - 30;
+                ctx.strokeStyle = "#0284c7";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(b1.x + b1.w, y);
+                ctx.lineTo(b2.x, y);
+                ctx.stroke();
+
+                // Tension inward arrows (><)
+                const midX = (b1.x + b1.w + b2.x) / 2;
+                ctx.fillStyle = "#38bdf8";
+                // Arrow pointing left (acting on B)
+                ctx.beginPath();
+                ctx.moveTo(midX + 10, y - 5);
+                ctx.lineTo(midX, y);
+                ctx.lineTo(midX + 10, y + 5);
+                ctx.fill();
+                // Arrow pointing right (acting on A)
+                ctx.beginPath();
+                ctx.moveTo(midX - 10, y - 5);
+                ctx.lineTo(midX, y);
+                ctx.lineTo(midX - 10, y + 5);
+                ctx.fill();
+
+                // Tension Text
+                ctx.fillStyle = "#38bdf8";
+                ctx.font = "bold 12px ui-monospace, Cambria Math";
+                ctx.textAlign = "center";
+                ctx.fillText(tensionLabel, midX, y - 10);
+            };
+
+            drawRope(blockA, blockB, "T_AB");
+            drawRope(blockB, blockC, "T_BC");
+
+            // Draw each Block
+            blocks.forEach((b) => {
+                ctx.save();
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 8;
+                const grad = ctx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+                grad.addColorStop(0, "#0284c7");
+                grad.addColorStop(0.5, "#38bdf8");
+                grad.addColorStop(1, "#1d4ed8");
+                ctx.fillStyle = grad;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.strokeStyle = "#e0f2fe";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(b.x, b.y, b.w, b.h);
+                ctx.restore();
+
+                // Block Name Label
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 20px ui-monospace, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(b.name, b.x + b.w / 2, b.y + b.h / 2 + 7);
+
+                // Normal Force N_i (upward)
+                const cx = b.x + b.w / 2;
+                drawManimVector(cx, b.y, cx, b.y - 50, "#0ea5e9", `N_${b.name}`);
+
+                // Weight Force W_i (downward)
+                drawManimVector(cx, b.y + b.h, cx, b.y + b.h + 50, "#ef4444", `W_${b.name}`);
+
+                // Friction Force f_i (leftward along base)
+                drawManimVector(b.x, groundY - 2, b.x - 30, groundY - 2, "#facc15", `f_${b.name}`);
+            });
+
+            // Pull Force F on block C (to the right)
+            drawManimVector(blockC.x + blockC.w, groundY - 30, blockC.x + blockC.w + 65, groundY - 30, "#22c55e", "F = 60 N");
+
+            // Acceleration vector a (dashed red arrow at top)
+            ctx.save();
+            ctx.strokeStyle = "#ef4444";
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(blockC.x - 20, 35);
+            ctx.lineTo(blockC.x + 80, 35);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            // Arrow head
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.moveTo(blockC.x + 80, 35);
+            ctx.lineTo(blockC.x + 70, 30);
+            ctx.lineTo(blockC.x + 70, 40);
+            ctx.fill();
+            ctx.font = "bold 13px ui-monospace";
+            ctx.fillText("a \u2192 (4 m/s\u00b2)", blockC.x + 10, 24);
+            ctx.restore();
+
+        } else if (step.diagramType === "elevator") {
+            const cabinW = 180;
+            const cabinH = 220;
+            const cabinX = width / 2 - cabinW / 2;
+            const cabinY = height / 2 - cabinH / 2 + 10;
+
+            // Lift Cable at top
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0);
+            if (currentStepIndex === 3) {
+                // Broken cable effect!
+                ctx.lineTo(width / 2, cabinY - 25);
+                ctx.stroke();
+                // Sparks
+                ctx.fillStyle = "#facc15";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText("\u26a1 KABEL PUTUS!", width / 2 + 10, cabinY - 15);
+            } else {
+                ctx.lineTo(width / 2, cabinY);
+                ctx.stroke();
+            }
+
+            // Cabin Box
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 3;
+            ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+            ctx.beginPath();
+            ctx.roundRect(cabinX, cabinY, cabinW, cabinH, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            // Floor scale inside cabin
+            const scaleW = 90;
+            const scaleH = 16;
+            const scaleX = width / 2 - scaleW / 2;
+            const scaleY = cabinY + cabinH - 24;
+
+            ctx.fillStyle = "#1e293b";
+            ctx.strokeStyle = "#22d3ee";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(scaleX, scaleY, scaleW, scaleH, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Scale LCD Display
+            const scaleReadout =
+                currentStepIndex === 0
+                    ? "60.0 kg (600 N)"
+                    : currentStepIndex === 1
+                    ? "78.0 kg (780 N)"
+                    : currentStepIndex === 2
+                    ? "42.0 kg (420 N)"
+                    : "0.0 kg (0 N)";
+
+            ctx.fillStyle = currentStepIndex === 1 ? "#22c55e" : currentStepIndex === 2 ? "#f59e0b" : currentStepIndex === 3 ? "#ef4444" : "#38bdf8";
+            ctx.font = "bold 11px ui-monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(scaleReadout, width / 2, scaleY + 12);
+
+            // Passenger Stick/Avatar Figure
+            const personCenterX = width / 2;
+            const personFeetY = currentStepIndex === 3 ? scaleY - 25 : scaleY; // Melayang if free fall!
+
+            // Head
+            ctx.strokeStyle = "#f8fafc";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(personCenterX, personFeetY - 95, 14, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Body
+            ctx.beginPath();
+            ctx.moveTo(personCenterX, personFeetY - 81);
+            ctx.lineTo(personCenterX, personFeetY - 35);
+            ctx.stroke();
+
+            // Arms
+            ctx.beginPath();
+            ctx.moveTo(personCenterX - 25, personFeetY - 60);
+            ctx.lineTo(personCenterX, personFeetY - 70);
+            ctx.lineTo(personCenterX + 25, personFeetY - 60);
+            ctx.stroke();
+
+            // Legs
+            ctx.beginPath();
+            ctx.moveTo(personCenterX, personFeetY - 35);
+            ctx.lineTo(personCenterX - 18, personFeetY);
+            ctx.moveTo(personCenterX, personFeetY - 35);
+            ctx.lineTo(personCenterX + 18, personFeetY);
+            ctx.stroke();
+
+            // Force vectors on person
+            const personCenterY = personFeetY - 55;
+            // Weight W (down)
+            drawManimVector(personCenterX, personCenterY, personCenterX, personCenterY + 60, "#ef4444", "W = 600 N");
+
+            // Normal N (up)
+            if (currentStepIndex === 0) {
+                drawManimVector(personCenterX, personFeetY, personCenterX, personFeetY - 60, "#38bdf8", "N = 600 N");
+            } else if (currentStepIndex === 1) {
+                drawManimVector(personCenterX, personFeetY, personCenterX, personFeetY - 85, "#22c55e", "N = 780 N");
+            } else if (currentStepIndex === 2) {
+                drawManimVector(personCenterX, personFeetY, personCenterX, personFeetY - 38, "#f59e0b", "N = 420 N");
+            } else if (currentStepIndex === 3) {
+                ctx.fillStyle = "#ef4444";
+                ctx.font = "bold 13px ui-monospace";
+                ctx.fillText("N = 0 (Melayang Bebas)", personCenterX + 55, personFeetY - 10);
+            }
+
+            // Direction of acceleration outside cabin
+            if (currentStepIndex === 1) {
+                drawManimVector(cabinX + cabinW + 25, cabinY + cabinH - 30, cabinX + cabinW + 25, cabinY + 30, "#22c55e", "a = +3 m/s\u00b2");
+            } else if (currentStepIndex === 2) {
+                drawManimVector(cabinX + cabinW + 25, cabinY + 30, cabinX + cabinW + 25, cabinY + cabinH - 30, "#f59e0b", "a = -3 m/s\u00b2");
+            } else if (currentStepIndex === 3) {
+                drawManimVector(cabinX + cabinW + 25, cabinY + 30, cabinX + cabinW + 25, cabinY + cabinH, "#ef4444", "a = g = 10 m/s\u00b2");
+            }
+
+        } else if (step.diagramType === "rotational") {
+            // Rotational Dynamics: Sphere & Cylinder rolling down incline without slip
+            const startX = 60;
+            const startY = height - 50;
+            const rampLen = width - 130;
+            const angleRad = (30 * Math.PI) / 180;
+            const rampH = rampLen * Math.tan(angleRad) * 0.55;
+
+            // Incline Wedge
+            ctx.strokeStyle = "#38bdf8";
+            ctx.fillStyle = "rgba(14, 165, 233, 0.08)";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(startX + rampLen, startY);
+            ctx.lineTo(startX, startY - rampH);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Rolling Solid Sphere (Leader)
+            const r = 26;
+            const sDist = rampLen * (0.3 + currentStepIndex * 0.15);
+            const cx = startX + sDist * Math.cos(angleRad) + r * Math.sin(angleRad);
+            const cy = (startY - rampH) + sDist * Math.sin(angleRad) - r * Math.cos(angleRad);
+
+            // Sphere Body with gradient
+            const sGrad = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, r);
+            sGrad.addColorStop(0, "#fbbf24");
+            sGrad.addColorStop(0.8, "#d97706");
+            sGrad.addColorStop(1, "#78350f");
+            ctx.fillStyle = sGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#fef08a";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Rotation lines (spokes) to visually show rolling rotation omega
+            const rotAngle = (sDist / r) * 1.5;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < 4; i++) {
+                const spAngle = rotAngle + (i * Math.PI) / 2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + r * Math.cos(spAngle), cy + r * Math.sin(spAngle));
+                ctx.stroke();
+            }
+
+            // Labels
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 12px ui-monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("Bola Pejal (k=0.4)", cx, cy - r - 12);
+            ctx.fillText("a = 3.57 m/s\u00b2", cx, cy - r - 26);
+
+            // Linear acceleration vector
+            const aLen = 50;
+            drawManimVector(cx, cy, cx + aLen * Math.cos(angleRad), cy + aLen * Math.sin(angleRad), "#22c55e", "a_lin");
+
+            // Static friction vector along ramp contact (uphill)
+            const contactX = cx - r * Math.sin(angleRad);
+            const contactY = cy + r * Math.cos(angleRad);
+            drawManimVector(contactX, contactY, contactX - 35 * Math.cos(angleRad), contactY - 35 * Math.sin(angleRad), "#f59e0b", "f_s");
+
+        } else if (step.diagramType === "lorentz") {
+            // Lorentz Magnetic Force & Circular Trajectory: F_L = q(v x B) = mv^2 / R
+            const centerX = width / 2;
+            const centerY = height / 2 + 10;
+            const orbitR = 85;
+
+            // Draw Magnetic Field Grid (B into screen: symbols cross X)
+            ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+            ctx.font = "14px ui-monospace";
+            ctx.textAlign = "center";
+            for (let bx = 50; bx < width - 40; bx += 40) {
+                for (let by = 40; by < height - 30; by += 40) {
+                    ctx.fillText("\u2297", bx, by);
+                }
+            }
+            // B Field Legend
+            ctx.fillStyle = "#38bdf8";
+            ctx.font = "bold 13px ui-monospace";
+            ctx.fillText("Medan Magnet B \u2297 (Masuk Bidang Gambar, 2 Tesla)", width / 2, 30);
+
+            // Orbit Path (Dashed Circle)
+            ctx.strokeStyle = "rgba(147, 197, 253, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, orbitR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Particle position on orbit based on step
+            const orbitAngle = (currentStepIndex * 0.7 + 0.3) * Math.PI;
+            const px = centerX + orbitR * Math.cos(orbitAngle);
+            const py = centerY + orbitR * Math.sin(orbitAngle);
+
+            // Positive Ion Particle (+q)
+            ctx.save();
+            ctx.shadowColor = "#f43f5e";
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(px, py, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 13px ui-monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("+q", px, py + 4);
+
+            // Tangent Velocity Vector v
+            const vAngle = orbitAngle + Math.PI / 2;
+            const vLen = 60;
+            drawManimVector(px, py, px + vLen * Math.cos(vAngle), py + vLen * Math.sin(vAngle), "#38bdf8", "v (5\u00d710\u2075 m/s)");
+
+            // Lorentz Force Vector F_L pointing radially inward to Center (F_c = mv^2/R)
+            const fAngle = orbitAngle + Math.PI;
+            const fLen = 50;
+            drawManimVector(px, py, px + fLen * Math.cos(fAngle), py + fLen * Math.sin(fAngle), "#e11d48", "F_L = F_c");
+
+            // Orbit Radius indicator line
+            ctx.strokeStyle = "#facc15";
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#facc15";
+            ctx.font = "bold 11px ui-monospace";
+            ctx.fillText("R = 5 mm", (centerX + px) / 2 - 12, (centerY + py) / 2 - 8);
+
+            // Right hand rule badge
+            ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(20, height - 55, 220, 42, 8);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#e0f2fe";
+            ctx.font = "10px ui-monospace";
+            ctx.textAlign = "left";
+            ctx.fillText("Kaidah Tangan Kanan:", 30, height - 40);
+            ctx.fillText("Ibu jari = v | Jari = B \u2297 | Telapak = F_L", 30, height - 23);
         }
     }, [step, currentStepIndex]);
 

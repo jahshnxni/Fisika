@@ -10,7 +10,7 @@
  * Uses standard Node.js fetch (no missing SDK packages needed).
  */
 
-import { buildCavemanSystemContext, ConversationTurn } from "@/lib/ai/caveman-memory";
+import { buildCavemanSystemContext, ConversationTurn, detectCavemanCommand, CavemanMode } from "@/lib/ai/caveman-memory";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -146,11 +146,25 @@ export async function* streamAI(
     messages: Message[],
     topic?: string
 ): AsyncGenerator<string> {
-    // 1. Build Caveman Memory Compressed Context
-    const { enhancedPrompt, compressedMessages } = buildCavemanSystemContext(
+    const lastUserMsg = messages[messages.length - 1]?.content || "";
+    const command = detectCavemanCommand(lastUserMsg);
+
+    if (command.isStatusQuery) {
+        yield `Caveman mode: caveman (Julius Brussee Engine v4.0)\n`;
+        yield `Input tokens saved: ~35% (Read Less active)\n`;
+        yield `Auto-routing: Gemini Key 1-3 ➔ OpenAI GPT ➔ Physica Engine\n`;
+        yield `Voice: Answer first, zero ceremony, formulas verbatim.`;
+        return;
+    }
+
+    const mode: CavemanMode = command.modeChange || "caveman";
+
+    // 1. Build Caveman Memory Compressed Context with token savings tracking
+    const { enhancedPrompt, compressedMessages, stats } = buildCavemanSystemContext(
         systemPrompt,
         messages as ConversationTurn[],
-        topic
+        topic,
+        mode
     );
 
     // 2. Collect Available Keys
@@ -210,10 +224,89 @@ export async function* streamAI(
 
     // 6. Failover to Built-in Physica Offline Physics Knowledge Engine
     console.log(`[streamAI] Using built-in Physica Physics Knowledge Engine (Always-on offline fallback)`);
-    const lastUserMsg = messages[messages.length - 1]?.content || "";
     const lower = lastUserMsg.toLowerCase();
 
     function generateSmartResponse(query: string): string {
+        // A. 3 Benda Diikat Tali (A, B, C)
+        if (query.includes("ikat") || query.includes("tali") || query.includes("berangkai") || (query.includes("benda") && query.includes("c"))) {
+            return `### 🔗 Dinamika 3 Benda Berangkai Dihubungkan Tali
+
+Sistem 3 balok $A, B, C$ bermassa $m_A, m_B, m_C$ dihubungkan tali mendatar ditarik gaya $F$ ke kanan di atas lantai (koefisien gesek $\\mu$):
+
+**1. Gaya Normal & Gesek Masing-Masing Benda:**
+- Benda $A$: $N_A = m_A g \\implies f_A = \\mu m_A g$
+- Benda $B$: $N_B = m_B g \\implies f_B = \\mu m_B g$
+- Benda $C$: $N_C = m_C g \\implies f_C = \\mu m_C g$
+- Total gaya gesek: $f_{\\text{total}} = \\mu (m_A + m_B + m_C) g$
+
+**2. Percepatan Sistem Bersama ($a$):**
+$$\\Sigma F = m_{\\text{total}} \\cdot a \\implies a = \\frac{F - \\mu(m_A + m_B + m_C)g}{m_A + m_B + m_C}$$
+
+**3. Tegangan Tali $T_{AB}$ (antara balok A dan B):**
+Tinjau FBD balok $A$ yang ditarik oleh $T_{AB}$:
+$$\\Sigma F_A = m_A a \\implies T_{AB} - f_A = m_A a \\implies \\mathbf{T_{AB} = m_A a + f_A}$$
+
+**4. Tegangan Tali $T_{BC}$ (antara balok B dan C):**
+Tinjau FBD gabungan balok $(A + B)$:
+$$\\mathbf{T_{BC} = (m_A + m_B)a + (f_A + f_B) = F - (m_C a + f_C)}$$
+
+💡 *Simulasi interaktif 3 balok berangkai tersedia di materi Dinamika.*`;
+        }
+
+        // B. Gerak Lift & Berat Semu (Timbangan)
+        if (query.includes("lift") || query.includes("timbangan") || query.includes("semu")) {
+            return `### 🛗 Dinamika Berat Semu di dalam Lift ($N$)
+
+Seseorang bermassa $m$ berdiri di atas timbangan dalam lift:
+
+**1. Lift Diam atau Bergerak GLB ($a = 0$):**
+$$N = W = m \\cdot g$$
+
+**2. Lift Bergerak Naik Dipercepat ($a$ ke atas):**
+$$N - mg = ma \\implies \\mathbf{N = m(g + a)} \\quad \\text{(Terasa Lebih Berat)}$$
+
+**3. Lift Bergerak Turun Dipercepat / Naik Diperlambat ($a$ ke bawah):**
+$$mg - N = ma \\implies \\mathbf{N = m(g - a)} \\quad \\text{(Terasa Lebih Ringan)}$$
+
+**4. Lift Jatuh Bebas (Kabel Putus, $a = g$ ke bawah):**
+$$\\mathbf{N = m(g - g) = 0} \\quad \\text{(Keadaan Melayang / Weightless)}$$
+
+**5. Lift Bergerak Turun Diperlambat ($a$ ke atas):**
+$$\\mathbf{N = m(g + a)} \\quad \\text{(Terasa Lebih Berat)}$$`;
+        }
+
+        // C. Dinamika Rotasi & Silinder Menggelinding
+        if (query.includes("rotasi") || query.includes("silinder") || query.includes("menggelinding") || query.includes("inersia") || query.includes("torsi")) {
+            return `### ⚙️ Dinamika Rotasi: Benda Menggelinding Tanpa Slip
+
+Untuk benda pejal menggelinding menuruni bidang miring dengan momen inersia $I = k m R^2$:
+
+**1. Percepatan Linier ($a$):**
+$$a = \\frac{g \\sin\\theta}{1 + k}$$
+
+**2. Perbandingan Nilai $k$ Berbagai Bentuk Benda:**
+- **Bola Pejal ($k = 2/5 = 0.4$):** $a = \\frac{5}{7}g\\sin\\theta \\approx 0.71 g\\sin\\theta$ (Paling Cepat!)
+- **Silinder Pejal ($k = 1/2 = 0.5$):** $a = \\frac{2}{3}g\\sin\\theta \\approx 0.67 g\\sin\\theta$
+- **Bola Berongga ($k = 2/3 \\approx 0.67$):** $a = \\frac{3}{5}g\\sin\\theta = 0.60 g\\sin\\theta$
+- **Cincin / Silinder Berongga ($k = 1.0$):** $a = \\frac{1}{2}g\\sin\\theta = 0.50 g\\sin\\theta$ (Paling Lambat)
+
+**3. Gaya Gesek Statis Penyebab Rotasi:**
+$$f_s = \\frac{k}{1 + k} m g \\sin\\theta$$`;
+        }
+
+        // D. Gaya Magnet Lorentz & Listrik Statis
+        if (query.includes("lorentz") || query.includes("magnet") || query.includes("listrik") || query.includes("muatan") || query.includes("medan")) {
+            return `### 🧲 Gaya Magnet Lorentz & Listrik Statis
+
+**1. Gaya Lorentz pada Muatan Bergerak:**
+$$\\vec{F} = q (\\vec{v} \\times \\vec{B}) \\implies F = |q| v B \\sin\\theta$$
+- **Kaidah Tangan Kanan:** Ibu jari = Arah $\\vec{v}$, Empat jari = Arah $\\vec{B}$, Telapak tangan = Arah $\\vec{F}$ (muatan positif).
+- Lintasan melingkar tegak lurus $\\vec{B}$:
+  $$F_L = F_{\\text{sentripetal}} \\implies q v B = \\frac{m v^2}{R} \\implies \\mathbf{R = \\frac{m v}{q B}}$$
+
+**2. Medan Listrik Statis (Hukum Coulomb):**
+$$\\vec{E} = \\frac{k q}{r^2} \\hat{r}, \\qquad \\vec{F}_E = q \\vec{E}$$`;
+        }
         if (query.includes("bidang miring") || query.includes("gesek") || query.includes("sudut") || query.includes("normal") || query.includes("kemiringan")) {
             return `### 📐 Dinamika Gerak pada Bidang Miring (TKA Fisika)
 

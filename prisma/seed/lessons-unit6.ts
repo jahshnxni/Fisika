@@ -165,5 +165,93 @@ Keluarga ingin agar tagihan tetap di bawah **Rp375.000 / bulan** (energi maksimu
 
 **Jawaban TKA:** A. Mengurangi penggunaan AC menjadi 4 jam per hari.
 `
+    },
+    {
+        title: "Kemagnetan & Gaya Lorentz",
+        slug: "kemagnetan-gaya-lorentz-siklotron",
+        order: 3,
+        skillSlug: "kemagnetan-lorentz",
+        contentMdx: `
+# 🧲 Medan Magnet & Gaya Lorentz: Prinsip Siklotron
+
+Gaya magnetik (Gaya Lorentz) adalah interaksi elektromagnetik dasar yang mengendalikan pembelokan partikel bermuatan dalam akselerator partikel (siklotron), spektrometer massa laboratorium, dan medan magnet sabuk Van Allen bumi.
+
+---
+
+## 1. Persamaan Vektor Gaya Lorentz
+
+Partikel bermuatan $q$ yang bergerak dengan vektor kecepatan $\\vec{v}$ di dalam medan magnet seragam $\\vec{B}$ mengalami gaya:
+$$\\vec{F}_L = q (\\vec{v} \\times \\vec{B})$$
+Besar gaya Lorentz:
+$$F_L = |q| \\cdot v \\cdot B \\cdot \\sin\\theta$$
+Dimana $\\theta$ adalah sudut apit antara vektor kecepatan $\\vec{v}$ dan arah medan magnet $\\vec{B}$.
+
+### Kaidah Tangan Kanan (Muatan Positif):
+- **Ibu Jari:** Arah vektor kecepatan $\\vec{v}$
+- **Empat Jari Telunjuk - Kelingking:** Arah vektor medan magnet $\\vec{B}$
+- **Telapak Tangan:** Arah dorongan Gaya Lorentz $\\vec{F}_L$
+> *(Catatan: Untuk elektron / muatan negatif, arah gaya Lorentz berlawanan dengan arah telapak tangan).*
+
+---
+
+## 2. Orbit Melingkar Partikel dalam Medan Magnet
+
+Jika kecepatan partikel tegak lurus terhadap medan magnet ($\\theta = 90^\\circ \\implies \\sin 90^\\circ = 1$), gaya Lorentz selalu tegak lurus kecepatan, sehingga **tidak mengubah kelajuan dan tidak melakukan usaha ($W = 0$)**. Gaya Lorentz berperan sebagai **gaya sentripetal ($F_c$)**:
+$$F_L = F_c \\implies q v B = \\frac{m v^2}{R}$$
+$$\\boxed{R = \\frac{m v}{q B}}$$
+
+### Frekuensi Siklotron & Periode Orbit:
+$$T = \\frac{2\\pi R}{v} = \\frac{2\\pi m}{q B}$$
+$$f = \\frac{q B}{2\\pi m}$$
+Frekuensi siklotron tidak bergantung pada kecepatan atau jari-jari orbit partikel!
+
+---
+
+## 3. Simulasi Interaktif: Lintasan Melingkar Gaya Lorentz
+
+Uji coba variasi kecepatan muatan $v$, kuat medan magnet $B$, jenis muatan ($+q$ atau $-q$), serta orientasi medan magnet (masuk $\\otimes$ atau keluar $\\odot$ bidang):
+
+<InteractiveComponent type="MagneticLorentzSim" />
+
+---
+
+## 4. Pembahasan Animasi Interaktif Ala Manim (MathJax)
+
+Lihat visualisasi vektor gerak melingkar siklotron dengan Manim Engine:
+
+<InteractiveComponent type="ManimSolutionViewer" />
+
+---
+
+## 5. Contoh Soal 3 Level Terstruktur
+
+### 🟢 Level 1: Dasar
+**Soal:** Sebuah proton ($q = 1{,}6 \\times 10^{-19}\\text{ C}$) bergerak dengan kelajuan $2 \\times 10^6\\text{ m/s}$ tegak lurus medan magnet $0{,}5\\text{ Tesla}$. Hitung besar gaya Lorentz yang dialami proton!
+
+**Penyelesaian:**
+$$F_L = q v B = (1{,}6 \\times 10^{-19}) \\times (2 \\times 10^6) \\times 0{,}5 = \\mathbf{1{,}6 \\times 10^{-13}\\text{ N}}$$
+
+---
+
+### 🟡 Level 2: Menengah (Jari-Jari Orbit Spektrometer Massa)
+**Soal:** Partikel alfa ($m = 6{,}64 \\times 10^{-27}\\text{ kg}$, $q = 3{,}2 \\times 10^{-19}\\text{ C}$) ditembakkan ke dalam medan magnet $B = 1{,}5\\text{ T}$ dengan kelajuan $4 \\times 10^5\\text{ m/s}$. Tentukan jari-jari lintasan lingkaran partikel!
+
+**Penyelesaian:**
+$$R = \\frac{m v}{q B} = \\frac{(6{,}64 \\times 10^{-27}) \\times (4 \\times 10^5)}{(3{,}2 \\times 10^{-19}) \\times 1{,}5} = \\frac{2{,}656 \\times 10^{-21}}{4{,}8 \\times 10^{-19}} \\approx \\mathbf{5{,}53\\text{ mm}}$$
+
+---
+
+### 🔴 Level 3: Level Asli TKA (HOTS Spektrometer Pemisah Isotop)
+**Soal:** Dua isotop ion positif bermuatan sama $+q$ dipercepat oleh beda potensial listrik yang sama $V$ sebelum memasuki medan magnet homogen $B$ tegak lurus. Jika massa isotop 1 adalah $m_1$ dan isotop 2 adalah $m_2$, tentukan perbandingan jari-jari lintasan keduanya ($R_1 / R_2$)!
+
+**Langkah Analisis:**
+1. Energi kinetik dari medan potensial listrik:
+   $$E_k = q V = \\frac{1}{2} m v^2 \\implies v = \\sqrt{\\frac{2 q V}{m}}$$
+2. Substitusi ke rumus jari-jari lintasan:
+   $$R = \\frac{m v}{q B} = \\frac{m \\sqrt{\\frac{2 q V}{m}}}{q B} = \\frac{1}{B} \\sqrt{\\frac{2 m V}{q}}$$
+3. Perbandingan jari-jari kedua isotop:
+   $$\\frac{R_1}{R_2} = \\sqrt{\\frac{m_1}{m_2}}$$
+Jari-jari deteksi berbanding lurus dengan akar massa partikel, membuktikan prinsip kerja **spektrometer massa presisi**.
+`
     }
 ];

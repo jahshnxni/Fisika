@@ -124,4 +124,11 @@ export const SKILLS: SkillData[] = [
         order: 2,
         unitSlug: "kelistrikan"
     },
+    {
+        title: "Kemagnetan & Gaya Lorentz",
+        slug: "kemagnetan-lorentz",
+        description: "Gaya Lorentz pada muatan bergerak, kaidah tangan kanan, lintasan siklotron, dan spektrometer massa.",
+        order: 3,
+        unitSlug: "kelistrikan"
+    },
 ];

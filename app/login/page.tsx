@@ -24,6 +24,9 @@ function LoginContent() {
         if (err === "OAuthAccountNotLinked") {
             return "Email ini sebelumnya didaftarkan secara manual. Silakan login menggunakan email & password.";
         }
+        if (err === "Callback") {
+            return "Gagal menyelesaikan OAuth Google (Callback Error). Pastikan 'Authorized redirect URIs' di Google Cloud Console sudah berisi: https://fisika-jade.vercel.app/api/auth/callback/google dan NEXTAUTH_URL di Vercel sudah sesuai.";
+        }
         return `Gagal masuk: ${err}`;
     };
 
