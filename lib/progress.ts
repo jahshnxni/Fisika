@@ -2,36 +2,10 @@ import prisma from "@/lib/prisma";
 
 /**
  * Check if a unit is unlocked for a user.
- * Unit 1 is always unlocked. Other units require completing 50% of lessons from the previous unit.
+ * Mode Bebas Akses: Semua materi terbuka langsung tanpa sistem penguncian level.
  */
 export async function isUnitUnlocked(userId: string, unitOrder: number): Promise<boolean> {
-    if (unitOrder <= 1) return true;
-
-    const previousUnit = await prisma.unit.findFirst({
-        where: { order: unitOrder - 1 },
-        include: {
-            skills: {
-                include: { lessons: true }
-            }
-        }
-    });
-
-    if (!previousUnit) return true;
-
-    const allLessonIds = previousUnit.skills.flatMap(
-        (s: { lessons: { id: string }[] }) => s.lessons.map((l: { id: string }) => l.id)
-    );
-    if (allLessonIds.length === 0) return true;
-
-    const completedCount = await prisma.userProgress.count({
-        where: {
-            userId,
-            lessonId: { in: allLessonIds },
-            isCompleted: true,
-        }
-    });
-
-    return completedCount >= Math.ceil(allLessonIds.length * 0.5);
+    return true;
 }
 
 /**

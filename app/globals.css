@@ -179,3 +179,36 @@ body {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+/* Math Typography (KaTeX / MathJax / Computer Modern Math) */
+@import url('https://fonts.googleapis.com/css2?family=KaTeX_Main:ital,wght@0,400;0,700;1,400;1,700&family=KaTeX_Math:ital@1&family=STIX+Two+Math&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+.katex {
+  font-size: 1.15em !important;
+  color: #f1f5f9;
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.75rem 0;
+  margin: 1rem 0 !important;
+  scrollbar-width: thin;
+}
+
+.katex-display > .katex {
+  color: #38bdf8;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.math-font {
+  font-family: 'KaTeX_Math', 'STIX Two Math', 'Cambria Math', serif;
+}
+
+/* Responsive canvas and simulation container */
+.simulation-canvas-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  touch-action: pan-y;
+}

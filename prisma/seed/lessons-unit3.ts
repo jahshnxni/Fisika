@@ -21,10 +21,20 @@ $$\\frac{F_1}{A_1} = \\frac{F_2}{A_2} \\implies F_1 = F_2 \\left(\\frac{A_1}{A_2
 
 ---
 
-## 2. Hukum Archimedes & Kapal Selam
+## 2. Hukum Archimedes: Terapung, Melayang, & Tenggelam
 
 Benda yang tercelup sebagian atau seluruhnya ke dalam fluida akan mengalami gaya ke atas ($F_A$) yang besarnya sama dengan berat fluida yang dipindahkan:
 $$F_A = \\rho_f \\cdot g \\cdot V_{\\text{tercelup}}$$
+
+### Visualisasi 3 Keadaan Benda dalam Fluida:
+Perhatikan diagram tiga keadaan berikut:
+1. **Terapung:** $\\rho_b < \\rho_f \\implies V_{\\text{tercelup}} < V_b$, gaya apung menyeimbangkan berat benda ($F_A = W$).
+2. **Melayang:** $\\rho_b = \\rho_f \\implies V_{\\text{tercelup}} = V_b$, benda melayang di sembarang kedalaman ($F_A = W$).
+3. **Tenggelam:** $\\rho_b > \\rho_f \\implies V_{\\text{tercelup}} = V_b$, gaya apung tidak mampu menahan berat ($F_A < W$, ditopang gaya normal dasar $N$).
+
+<InteractiveComponent type="ArchimedesThreeStatesVisualizer" />
+
+---
 
 ### Mekanisme Mengapung & Menyelam Kapal Selam:
 - Kapal selam memiliki **tangki ballast** (ballast tank).
@@ -43,6 +53,14 @@ $$F_A = \\rho_f \\cdot g \\cdot V_{\\text{tercelup}}$$
 ## 4. Simulasi Interaktif: Tangki Ballast Kapal Selam
 
 <InteractiveComponent type="SubmarineBallastSim" />
+
+---
+
+## 5. Pembahasan Animasi Interaktif Ala Manim (MathJax)
+
+Pelajari langkah penurunan matematis gaya apung dan fraksi volume benda terapung dengan animasi langkah-demi-langkah berikut:
+
+<InteractiveComponent type="ManimSolutionViewer" />
 
 ---
 

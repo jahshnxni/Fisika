@@ -10,15 +10,22 @@ import { Card } from "@/components/ui/Card";
 export default async function LearnPage() {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
-        redirect("/login");
+    let user = null;
+    if (session?.user?.email) {
+        user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+        });
     }
-
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-    });
-
-    if (!user) redirect("/login");
+    // Mode Tamu / Demo: Akses bebas untuk semua pengunjung tanpa wajib login
+    if (!user) {
+        user = (await prisma.user.findFirst()) || {
+            id: "guest-mode",
+            name: "Pelajar Fisika (Tamu)",
+            xp: 0,
+            hearts: 5,
+            streak: 0,
+        } as any;
+    }
 
     const units = await prisma.unit.findMany({
         include: {
@@ -48,9 +55,11 @@ export default async function LearnPage() {
         <div className="space-y-12 pb-24">
             <div className="text-center space-y-2 mb-10">
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-accent inline-block">
-                    Peta Penjelajahan Fisika
+                    Peta Materi & Simulasi Fisika TKA
                 </h1>
-                <p className="text-slate-400">Selesaikan setiap planet materi untuk membuka galaksi berikutnya.</p>
+                <p className="text-slate-300 max-w-xl mx-auto text-sm">
+                    🔓 <strong>Mode Bebas Akses:</strong> Anda dapat langsung mempelajari materi mana saja dan mencoba simulasinya tanpa harus menyelesaikan materi sebelumnya!
+                </p>
             </div>
 
             <div className="max-w-2xl mx-auto space-y-24 relative">
@@ -61,46 +70,37 @@ export default async function LearnPage() {
                     <div key={unit.id} className="relative group">
 
                         {/* Unit Header / Card */}
-                        <div className={`ml-0 md:ml-24 transition-all duration-500 transform ${unit.unlocked ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-60 grayscale'}`}>
-                            <div className={`p-6 rounded-2xl border backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${unit.unlocked
-                                    ? 'bg-gradient-to-br from-cosmic-800/80 to-cosmic-900/80 border-white/10 shadow-lg shadow-primary/5 hover:border-primary/30'
-                                    : 'bg-cosmic-900/50 border-white/5'
-                                }`}>
+                        <div className="ml-0 md:ml-24 transition-all duration-500 transform translate-x-0 opacity-100">
+                            <div className="p-6 rounded-2xl border backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-cosmic-800/90 to-cosmic-900/90 border-white/10 shadow-lg shadow-primary/5 hover:border-primary/40">
                                 {/* Decor */}
-                                {unit.unlocked && <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16" />}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
 
                                 <div className="flex items-start justify-between gap-4 relative z-10">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-sm font-mono font-bold text-accent uppercase tracking-widest">Unit {unit.order}</span>
-                                            {unit.unlocked && unit.progress?.lessonProgress === 100 && (
+                                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                                                Terbuka Bebas
+                                            </span>
+                                            {unit.progress?.lessonProgress === 100 && (
                                                 <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold border border-green-500/20 flex items-center gap-1">
                                                     <CheckCircle className="w-3 h-3" /> Selesai
                                                 </span>
                                             )}
                                         </div>
                                         <h2 className="text-2xl font-bold text-white mb-2">{unit.title}</h2>
-                                        <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-lg">{unit.description}</p>
+                                        <p className="text-slate-300 text-sm leading-relaxed mb-6 max-w-lg">{unit.description}</p>
 
                                         {/* Progress Bar */}
-                                        {unit.unlocked && (
-                                            <div className="w-full bg-cosmic-950/50 rounded-full h-2 mb-2 overflow-hidden border border-white/5">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-                                                    style={{ width: `${unit.progress?.lessonProgress || 0}%` }}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {!unit.unlocked && (
-                                            <div className="flex items-center gap-2 text-slate-500 text-sm mt-4 bg-cosmic-950/30 p-2 rounded-lg w-fit">
-                                                <Lock className="w-4 h-4" />
-                                                <span>Selesaikan Unit {unit.order - 1} untuk membuka</span>
-                                            </div>
-                                        )}
+                                        <div className="w-full bg-cosmic-950/50 rounded-full h-2 mb-2 overflow-hidden border border-white/5">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                                                style={{ width: `${Math.max(5, unit.progress?.lessonProgress || 0)}%` }}
+                                            />
+                                        </div>
                                     </div>
 
-                                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-inner ${unit.unlocked ? 'bg-gradient-to-br from-white/10 to-transparent border border-white/10' : 'bg-cosmic-950 border border-white/5 opacity-50'}`}>
+                                    <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-inner bg-gradient-to-br from-white/10 to-transparent border border-white/10">
                                         {unit.icon || '🪐'}
                                     </div>
                                 </div>

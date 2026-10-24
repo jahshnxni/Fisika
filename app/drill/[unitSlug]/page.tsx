@@ -13,7 +13,8 @@ interface PageProps {
 export default async function DrillUnitPage({ params }: PageProps) {
     const { unitSlug } = await params;
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) redirect("/login");
+    // Guest mode supported: users can practice questions immediately without login
+    const userEmail = session?.user?.email || null;
 
     const unit = await prisma.unit.findUnique({
         where: { slug: unitSlug },

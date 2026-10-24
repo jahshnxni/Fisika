@@ -16,11 +16,17 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.email)
-            return Response.json({ error: "Silakan login dulu" }, { status: 401 });
-
-        const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-        if (!user) return Response.json({ error: "User tidak ditemukan" }, { status: 404 });
+        let user: any = null;
+        if (session?.user?.email) {
+            user = await prisma.user.findUnique({ where: { email: session.user.email } });
+        }
+        if (!user) {
+            user = (await prisma.user.findFirst()) || {
+                id: "guest-user-physica",
+                name: "Pelajar Tamu",
+                email: "guest@physica.app"
+            };
+        }
 
         const body = await req.json();
         const {

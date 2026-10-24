@@ -28,7 +28,24 @@ $$\\vec{F}_{\\text{aksi}} = -\\vec{F}_{\\text{reaksi}}$$
 
 ---
 
-## 2. Simulasi Interaktif: Perahu Nelayan & Gaya Arus Laut
+## 2. Simulasi Interaktif: Bidang Miring Kasar & Diagram Gaya Bebas (FBD)
+
+Dinamika benda pada bidang miring melibatkan dekomposisi gaya berat menjadi komponen sejajar ($W_\\parallel = mg\\sin\\theta$) dan tegak lurus ($W_\\perp = mg\\cos\\theta$). Anda dapat menggeser sudut kemiringan $\\theta$, mengubah massa $m$, dan mengaktifkan gaya gesek kinetis/statis:
+
+<InteractiveComponent type="InclinedPlaneSim" />
+
+---
+
+## 3. Simulasi Interaktif: Sistem Katrol Atwood Dua Beban
+
+Katrol mengubah arah gaya tegangan tali. Pada katrol Atwood licin dengan massa $m_1$ dan $m_2$, percepatan sistem dan tegangan tali dihitung dengan:
+$$a = \\frac{|m_1 - m_2|}{m_1 + m_2}g, \\qquad T = \\frac{2m_1 m_2}{m_1 + m_2}g$$
+
+<InteractiveComponent type="PulleySystemSim" />
+
+---
+
+## 4. Simulasi Interaktif: Perahu Nelayan & Gaya Arus Laut
 
 Perhatikan simulasi perahu nelayan bermassa $150\\text{ kg}$ yang berlayar ke utara $6\\text{ m/s}$ lalu terkena dorongan arus laut sebesar $300\\text{ N}$ ke arah timur selama $4\\text{ detik}$:
 
@@ -36,7 +53,15 @@ Perhatikan simulasi perahu nelayan bermassa $150\\text{ kg}$ yang berlayar ke ut
 
 ---
 
-## 3. Contoh Soal 3 Level Terstruktur
+## 5. Pembahasan Animasi Interaktif Ala Manim (MathJax)
+
+Saksikan visualisasi penurunan rumus langkah-demi-langkah dengan animasi vektor Manim:
+
+<InteractiveComponent type="ManimSolutionViewer" />
+
+---
+
+## 6. Contoh Soal 3 Level Terstruktur
 
 ### 🟢 Level 1: Dasar
 **Soal:** Sebuah balok kayu bermassa $5\\text{ kg}$ berada di atas lantai licin ditarik dengan gaya mendatar $20\\text{ N}$. Hitung percepatan balok!

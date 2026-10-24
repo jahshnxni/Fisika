@@ -2,7 +2,6 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkMath from 'remark-math'
-import remarkGfm from 'remark-gfm'
 import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
@@ -46,6 +45,12 @@ const CarnotEngineCycleSim = dynamic(() => import('@/components/simulations/Carn
 const ElectrostaticPrinterSim = dynamic(() => import('@/components/simulations/ElectrostaticPrinterSim'), { ssr: false })
 const DCCircuitBillingSim = dynamic(() => import('@/components/simulations/DCCircuitBillingSim'), { ssr: false })
 
+// Visualizations & Manim Solution Explainer
+const ArchimedesThreeStatesVisualizer = dynamic(() => import('@/components/simulations/ArchimedesThreeStatesVisualizer'), { ssr: false })
+const InclinedPlaneSim = dynamic(() => import('@/components/simulations/InclinedPlaneSim'), { ssr: false })
+const PulleySystemSim = dynamic(() => import('@/components/simulations/PulleySystemSim'), { ssr: false })
+const ManimSolutionViewer = dynamic(() => import('@/components/ManimSolutionViewer'), { ssr: false })
+
 const RealBernoulli = BernoulliSim // alias
 
 const simMap: Record<string, React.ComponentType> = {
@@ -72,6 +77,11 @@ const simMap: Record<string, React.ComponentType> = {
     CarnotEngineCycleSim,
     ElectrostaticPrinterSim,
     DCCircuitBillingSim,
+    // Archimedes Three States & Dynamics & Manim
+    ArchimedesThreeStatesVisualizer,
+    InclinedPlaneSim,
+    PulleySystemSim,
+    ManimSolutionViewer,
 }
 
 const components = {
@@ -121,7 +131,7 @@ export default function MDXContent({ source }: { source: string }) { // Changed 
     return (
         <div className="prose prose-invert max-w-none">
             <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
+                remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex, rehypeRaw]}
                 components={components as any}
             >

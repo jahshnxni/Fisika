@@ -7,10 +7,19 @@ import { Lock, Target, Zap, Trophy, Flame } from "lucide-react";
 
 export default async function DrillPage() {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) redirect("/login");
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (!user) redirect("/login");
+    let user = null;
+    if (session?.user?.email) {
+        user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    }
+    // Mode Tamu / Demo: Akses bebas untuk semua pengunjung tanpa wajib login
+    if (!user) {
+        user = (await prisma.user.findFirst()) || {
+            id: "guest-mode",
+            name: "Pelajar Fisika (Tamu)",
+            xp: 0,
+        } as any;
+    }
 
     const units = await prisma.unit.findMany({
         orderBy: { order: "asc" },
@@ -19,10 +28,10 @@ export default async function DrillPage() {
         }
     });
 
-    // Check unlock status for each unit (reusing same logic)
+    // Bebas Akses: Semua materi dan unit latihan dapat diakses kapan saja tanpa prasyarat
     const unitsWithStatus = await Promise.all(
         units.map(async (unit) => {
-            const isUnlocked = unit.order <= 1 ? true : await checkUnlock(user.id, unit.order);
+            const isUnlocked = true;
             const attempts = await prisma.drillAttempt.count({
                 where: { userId: user.id, unitSlug: unit.slug }
             });
@@ -133,16 +142,5 @@ export default async function DrillPage() {
 }
 
 async function checkUnlock(userId: string, unitOrder: number): Promise<boolean> {
-    if (unitOrder <= 1) return true;
-    const previousUnit = await prisma.unit.findFirst({
-        where: { order: unitOrder - 1 },
-        include: { skills: { include: { lessons: true } } }
-    });
-    if (!previousUnit) return true;
-    const allLessonIds = previousUnit.skills.flatMap(s => s.lessons.map(l => l.id));
-    if (allLessonIds.length === 0) return true;
-    const completed = await prisma.drillAttempt.count({
-        where: { userId, unitSlug: previousUnit.slug }
-    });
-    return completed >= 1; // At least 1 drill attempt on previous unit
+    return true; // Bebas akses semua unit
 }
